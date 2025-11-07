@@ -1,10 +1,16 @@
 using MTGProxyApp.Components;
+using MTGProxyApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddRazorComponents()
+builder.Services
+    .AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddHttpClient<HttpService>();
+builder.Services.AddHttpClient<ScryfallService>();
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
@@ -17,12 +23,15 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRouting();
 
+app.MapControllers();
+app.MapBlazorHub();
 
 app.UseAntiforgery();
 
 app.MapStaticAssets();
-app.MapRazorComponents<App>()
+app.MapRazorComponents<MTGProxyApp.Components.App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
