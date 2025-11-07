@@ -2,6 +2,7 @@
 @using MTGProxyApp.Dtos
 @using MTGProxyApp.Models
 @using MTGProxyApp.Services
+@rendermode InteractiveServer
 @inject ScryfallService Scryfall
 
 <h2>MTG Proxy Builder</h2>
@@ -22,7 +23,10 @@
 {
   <div class="alert alert-warning mt-3">
     <ul>
-      @foreach (var e in Errors) { <li>@e</li> }
+      @foreach (var e in Errors)
+      {
+        <li>@e</li>
+      }
     </ul>
   </div>
 }
@@ -37,7 +41,7 @@
           @if (c.PngUri is not null)
           {
             <img src="@c.PngUri" class="card-img-top" style="cursor:pointer"
-                 @onclick="@(() => OpenArtPicker(c))" />
+                 @onclick="@(() => OpenArtPicker(c))"/>
           }
           else
           {
@@ -87,7 +91,7 @@
                 {
                   <div class="col">
                     <img src="@opt" class="img-fluid" style="cursor:pointer"
-                         @onclick="@(() => ChooseArt(opt))" />
+                         @onclick="@(() => ChooseArt(opt))"/>
                   </div>
                 }
               </div>
@@ -102,15 +106,43 @@
   </div>
 }
 
+<button type="button" class="btn btn-primary" @onclick="SaveAsPdfSheets">
+  Download PDF Sheets (3×3)
+</button>
+
+@code {
+
+  private async Task SaveAsPdfSheets()
+  {
+    var deckName = await JSPrompt("Enter deck name:");
+    if (string.IsNullOrWhiteSpace(deckName)) return;
+
+    var urls = Cards
+      .SelectMany(c => Enumerable.Repeat(c.PngUri?.ToString() ?? "", c.Source.Count))
+      .Where(s => !string.IsNullOrWhiteSpace(s))
+      .ToList();
+    if (urls.Count == 0) return;
+
+    var payload = new { DeckName = deckName.Trim(), ImageUrls = urls };
+
+    await JS.InvokeVoidAsync(
+      "postAndDownload",
+      "api/save-deck-sheets", // <-- PDF endpoint
+      payload,
+      $"{deckName}.pdf"
+    );
+  }
+}
+
 @code {
   private string DeckText = "";
-  private List<string> Errors = new();
-  private List<ChosenCardModel> Cards = new();
+  private readonly List<string> Errors = new();
+  private readonly List<ChosenCardModel> Cards = new();
 
-  private bool ShowPicker = false;
-  private bool PickerLoading = false;
+  private bool ShowPicker;
+  private bool PickerLoading;
   private ChosenCardModel? Current;
-  private List<Uri> PickerOptions = new();
+  private readonly List<Uri> PickerOptions = new();
 
   private async Task ParseAndLoad()
   {
@@ -153,7 +185,8 @@
         continue;
       }
 
-      Cards.Add(new ChosenCardModel {
+      Cards.Add(new ChosenCardModel
+      {
         Source = dl,
         PngUri = png,
         PrintsSearchUri = card.PrintsSearchUri
@@ -170,12 +203,25 @@
 
     try
     {
+      if (c.PrintsSearchUri is null)
+      {
+        PickerLoading = false;
+        return;
+      }
+
       var prints = await Scryfall.GetPrintsAsync(c.PrintsSearchUri);
-      // Each printing may be single-face or double-face
+
       foreach (var pr in prints)
       {
-        var png = pr.ImageUris?.Png ?? pr.CardFaces?.FirstOrDefault()?.ImageUris?.Png;
-        if (png is not null) PickerOptions.Add(png);
+        if (pr.ImageUris?.Png is Uri single) PickerOptions.Add(single);
+
+        if (pr.CardFaces is { Length: > 0 })
+        {
+          foreach (var f in pr.CardFaces)
+          {
+            if (f.ImageUris?.Png is Uri facePng) PickerOptions.Add(facePng);
+          }
+        }
       }
     }
     finally
@@ -198,6 +244,7 @@
     {
       Current.PngUri = uri;
     }
+
     ClosePicker();
   }
 
@@ -210,29 +257,21 @@
       .SelectMany(c => Enumerable.Repeat(c.PngUri?.ToString() ?? "", c.Source.Count))
       .Where(s => !string.IsNullOrWhiteSpace(s))
       .ToList();
-
     if (urls.Count == 0) return;
 
-    using var http = new HttpClient();
-    var payload = new SaveDeckRequest { DeckName = deckName.Trim(), ImageUrls = urls };
-    var resp = await http.PostAsJsonAsync("/api/save-deck", payload);
-    if (resp.IsSuccessStatusCode)
-    {
-      // Server returns a zip; trigger download
-      var blob = await resp.Content.ReadAsByteArrayAsync();
-      var base64 = Convert.ToBase64String(blob);
-      await JSTriggerDownload($"{deckName}.zip", base64);
-    }
+    var payload = new { DeckName = deckName.Trim(), ImageUrls = urls };
+
+    // IMPORTANT: call the JS fetch+download helper. No base64 anywhere.
+    await JS.InvokeVoidAsync("postAndDownload", "api/save-deck", payload, $"{deckName}.zip");
   }
 
   // JS interop helpers
   [Inject] IJSRuntime JS { get; set; } = default!;
 
-  private async Task<string?> JSPrompt(string message) =>
-      await JS.InvokeAsync<string?>("prompt", message);
-
-  private async Task JSTriggerDownload(string filename, string base64Data) =>
-      await JS.InvokeVoidAsync("downloadFileFromBytes", filename, base64Data);
+  private async Task<string?> JSPrompt(string message)
+  {
+    return await JS.InvokeAsync<string?>("prompt", message);
+  }
 
   private class SaveDeckRequest
   {

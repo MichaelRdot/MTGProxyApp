@@ -19,35 +19,30 @@ public class SaveDeckController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.DeckName) || req.ImageUrls.Count == 0)
             return BadRequest("Missing deck name or images.");
 
-        var deckRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "decks", Sanitize(req.DeckName));
-        Directory.CreateDirectory(deckRoot);
-
+        var safe = Sanitize(req.DeckName);
         var client = factory.CreateClient();
-        var i = 1;
-        foreach (var url in req.ImageUrls)
-        {
-            var bytes = await client.GetByteArrayAsync(url);
-            var filename = Path.Combine(deckRoot, $"{i:D3}.png");
-            await System.IO.File.WriteAllBytesAsync(filename, bytes);
-            i++;
-        }
 
-        // Create a zip in-memory and return it
-        using var ms = new MemoryStream();
-        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
+        // Build ZIP entirely in memory—no disk writes
+        var ms = new MemoryStream();
+        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
         {
-            foreach (var file in Directory.GetFiles(deckRoot, "*.png"))
+            int i = 1;
+            foreach (var url in req.ImageUrls)
             {
-                var entry = zip.CreateEntry(Path.GetFileName(file), CompressionLevel.Optimal);
-                await using var src = System.IO.File.OpenRead(file);
-                await using var dst = entry.Open();
-                await src.CopyToAsync(dst);
+                // Create ZIP entry name like 001.png, 002.png, ...
+                var entry = zip.CreateEntry($"{i:D3}.png", CompressionLevel.NoCompression);
+                await using var entryStream = entry.Open();
+
+                // Stream the PNG from Scryfall directly into the ZIP entry
+                await using var httpStream = await client.GetStreamAsync(url);
+                await httpStream.CopyToAsync(entryStream);
+
+                i++;
             }
         }
 
-        ms.Position = 0;
-        var zipName = $"{Sanitize(req.DeckName)}.zip";
-        return File(ms.ToArray(), "application/zip", zipName);
+        ms.Position = 0; // reset for reading
+        return File(ms, "application/zip", $"{safe}.zip");    
     }
 
     private static string Sanitize(string s)

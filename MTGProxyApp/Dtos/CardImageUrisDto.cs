@@ -4,6 +4,5 @@ namespace MTGProxyApp.Dtos;
 
 public class CardImageUrisDto
 {
-    [JsonPropertyName("png")]
-    public Uri? Png { get; set; }
+    [JsonPropertyName("png")] public Uri? Png { get; set; }
 }
