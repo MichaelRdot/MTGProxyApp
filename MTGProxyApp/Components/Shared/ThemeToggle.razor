@@ -1,0 +1,43 @@
+﻿@inject IJSRuntime JS
+
+<div class="theme-toggle">
+    <button class='@($"btn {Active("light")}")'
+            @onclick='() => SetTheme("light")'
+            title="Light">☀️
+    </button>
+
+    <button class='@($"btn {Active("dark")}")'
+            @onclick='() => SetTheme("dark")'
+            title="Dark">🌙
+    </button>
+
+    <button class='@($"btn {Active("system")}")'
+            @onclick='() => SetTheme("system")'
+            title="System">🖥️
+    </button>
+</div>
+
+@code {
+    private string current = "system";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            current = await JS.InvokeAsync<string>("themeManager.get");
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetTheme(string value)
+    {
+        await JS.InvokeVoidAsync("themeManager.set", value);
+        current = value;
+    }
+
+    private string Active(string val)
+    {
+        return current == val ? "btn-primary" : "";
+    }
+
+}
