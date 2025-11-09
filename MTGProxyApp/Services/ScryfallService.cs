@@ -1,4 +1,5 @@
-﻿using MTGProxyApp.Dtos;
+﻿using System.Text.Json.Serialization;
+using MTGProxyApp.Dtos;
 
 namespace MTGProxyApp.Services;
 
@@ -30,15 +31,43 @@ public class ScryfallService
         return await _httpService.GetResponse<CardDto?>(uri);
     }
 
-    public async Task<List<CardDto>> GetPrintsAsync(Uri printsSearchUri)
+    public async Task<ScryfallListDto<CardDto>> GetPrintsAsync(Uri printsSearchUri)
     {
-        var all = new List<CardDto>();
-        var data = await _httpService.GetResponse<ScryfallListDto<CardDto>>(printsSearchUri);
-        foreach (var cardArt in data.Data)
-        { 
-            all.AddRange(cardArt);
-        }
-        
+        var all = await _httpService.GetResponse<ScryfallListDto<CardDto>>(printsSearchUri);
         return all;
+    }
+    public class ScryfallList<T>
+    {
+        [JsonPropertyName("data")] public List<T>? Data { get; set; }
+        [JsonPropertyName("has_more")] public bool HasMore { get; set; }
+        [JsonPropertyName("next_page")] public string? NextPage { get; set; }
+    }
+
+// Small return type for prints pages
+    public record PrintsPage(List<CardDto> Data, string? NextPage);
+
+    public async Task<CardDto?> GetCardBySetAndCollectorAsync(string set, string collector)
+    {
+        var path = $"cards/{set}/{collector}".ToLowerInvariant();
+        return await _httpService.GetResponse<CardDto>(new Uri(_client + path));
+    }
+
+    public async Task<CardDto?> GetBestPrintingForNameAsync(string name)
+    {
+        // Try exact, then fuzzy
+        var exact = new Uri(_client + $"cards/named?exact={Uri.EscapeDataString(name)}");
+        var card = await _httpService.GetResponse<CardDto>(exact);
+        if (card is not null) return card;
+
+        var fuzzy = new Uri(_client + $"cards/named?fuzzy={Uri.EscapeDataString(name)}");
+        return await _httpService.GetResponse<CardDto>(fuzzy);
+    }
+
+    public async Task<PrintsPage> GetPrintsPageAsync(Uri uri)
+    {
+        var page = await _httpService.GetResponse<ScryfallList<CardDto>>(uri);
+        var data = page?.Data ?? new List<CardDto>();
+        var next = (page?.HasMore ?? false) ? page?.NextPage : null;
+        return new PrintsPage(data, next);
     }
 }

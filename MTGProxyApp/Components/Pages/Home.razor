@@ -1,281 +1,406 @@
 ﻿@page "/"
-@using MTGProxyApp.Dtos
-@using MTGProxyApp.Models
+@using System
+@using System.Text.RegularExpressions
 @using MTGProxyApp.Services
-@rendermode InteractiveServer
+
+@using MTGProxyApp.Dtos
+@inject IJSRuntime JS
 @inject ScryfallService Scryfall
 
-<h2>MTG Proxy Builder</h2>
+<h1 class="sr-only">MTG Proxy Builder</h1>
 
-<div class="mb-3">
-  <button class="btn btn-primary" @onclick="PromptAndSave">Save Deck Images</button>
-</div>
-
-<textarea class="form-control" rows="8" @bind="DeckText" placeholder="Paste lines like:
-1 Nissa, Worldsoul Speaker (DRC) 13
-1 Nissa, Worldsoul Speaker"></textarea>
-
-<div class="mt-2">
-  <button class="btn btn-success" @onclick="ParseAndLoad">Parse & Load</button>
-</div>
-
-@if (Errors.Count > 0)
+@if (Busy)
 {
-  <div class="alert alert-warning mt-3">
-    <ul>
-      @foreach (var e in Errors)
-      {
-        <li>@e</li>
-      }
-    </ul>
+  <div class="overlay" role="alert" aria-live="assertive" aria-busy="true">
+    <div class="overlay-box">
+      <div class="spinner" aria-hidden="true"></div>
+      <div>@BusyMessage</div>
+    </div>
   </div>
 }
 
+<!-- Top actions -->
+<div class="actions actions-top">
+  <button class="btn btn-primary" disabled="@Busy" @onclick="ParseAndLoad_Wrapper">Parse &amp; Load</button>
+  <button class="btn" disabled="@Busy" @onclick="SaveImagesZip_Wrapper">Save Images</button>
+  <button class="btn" disabled="@Busy" @onclick="SaveAsPdfSheets_Wrapper">Download PDF Sheets</button>
+  <label class="toggle"><input type="checkbox" @bind="HighResOnly" /> High-res only</label>
+</div>
+
+<!-- Deck textarea -->
+<div class="editor">
+  <textarea class="deck-input" @bind="DeckText" ...>
+            placeholder="Paste deck list here (e.g.&#10;1 Nissa, Worldsoul Speaker (DRC) 13&#10;1 Nissa, Worldsoul Speaker)"></textarea>
+</div>
+
+<!-- Parsed cards grid -->
 @if (Cards.Count > 0)
 {
-  <div class="row row-cols-1 row-cols-md-3 g-3 mt-3">
+  <div class="cards">
     @foreach (var c in Cards)
     {
-      <div class="col">
-        <div class="card h-100">
+      <div class="card">
+        <div class="card-head">
+          <div class="title">@c.Quantity × @c.DisplayName</div>
+          <div class="meta">
+            @if (!string.IsNullOrWhiteSpace(c.SetCode) && !string.IsNullOrWhiteSpace(c.Collector))
+            {
+              <span>(@c.SetCode.ToUpperInvariant()) @c.Collector</span>
+            }
+          </div>
+        </div>
+
+        <div class="card-body">
           @if (c.PngUri is not null)
           {
-            <img src="@c.PngUri" class="card-img-top" style="cursor:pointer"
-                 @onclick="@(() => OpenArtPicker(c))"/>
+            <img class="thumb" src="@c.PngUri" alt="@c.DisplayName" />
           }
           else
           {
-            <div class="p-3 text-muted">No image found</div>
+            <div class="thumb thumb-empty">no art</div>
           }
-          <div class="card-body">
-            <h5 class="card-title">@c.DisplayName</h5>
-            <button class="btn btn-outline-secondary" @onclick="@(() => OpenArtPicker(c))">
-              Choose Alternate Art
-            </button>
+          <div class="card-actions">
+            <button class="btn" @onclick="@(()=>OpenArtPicker(c))">Choose alternate art</button>
           </div>
         </div>
       </div>
     }
   </div>
 
-  <div class="my-4">
-    <button class="btn btn-primary" @onclick="PromptAndSave">Save Deck Images</button>
+  <!-- Bottom actions -->
+  <div class="actions actions-bottom">
+    <button class="btn" disabled="@Busy" @onclick="SaveImagesZip_Wrapper">Save Images</button>
+    <button class="btn btn-primary" disabled="@Busy" @onclick="SaveAsPdfSheets_Wrapper">Download PDF Sheets</button>
   </div>
 }
 
-<!-- Art Picker Modal -->
-@if (ShowPicker)
+<!-- Art picker modal -->
+@if (ShowPicker && PickerFor is not null)
 {
-  <div class="modal-backdrop fade show"></div>
-  <div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,0.4)">
-    <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Choose Art — @Current?.DisplayName</h5>
-          <button type="button" class="btn-close" @onclick="ClosePicker"></button>
+  <div class="modal-backdrop" @onclick="ClosePicker">
+    <div class="modal" @onclick:stopPropagation>
+      <div class="modal-header sticky">
+        <div>
+          Select art for <strong>@PickerFor.DisplayName</strong>
+          @if (!string.IsNullOrWhiteSpace(PickerFor.SetCode) && !string.IsNullOrWhiteSpace(PickerFor.Collector))
+          {
+            <span class="meta"> — (@PickerFor.SetCode.ToUpperInvariant()) @PickerFor.Collector</span>
+          }
         </div>
-        <div class="modal-body">
-          @if (PickerLoading)
-          {
-            <div>Loading art…</div>
-          }
-          else if (PickerOptions.Count == 0)
-          {
-            <div>No alternate art found.</div>
-          }
-          else
-          {
-            <div class="container-fluid">
-              <div class="row row-cols-1 row-cols-md-3 g-3">
-                @foreach (var opt in PickerOptions)
+        <button class="btn" @onclick="ClosePicker">✕</button>
+      </div>
+
+      <div class="modal-body">
+        @if (PickerOptions.Count == 0)
+        {
+          <div class="empty">No images found.</div>
+        }
+        else
+        {
+          <div class="picker-grid">
+            @foreach (var opt in PickerOptions)
+            {
+              <button class="picker-item" @onclick="@(()=>PickArt(opt))" title="@opt.Set (@opt.Set?.ToUpperInvariant()) #@opt.SetId">
+                @if (opt.ImageUris?.Png is Uri u)
                 {
-                  <div class="col">
-                    <img src="@opt" class="img-fluid" style="cursor:pointer"
-                         @onclick="@(() => ChooseArt(opt))"/>
-                  </div>
+                  <img src="@u" alt="@opt.Name" />
                 }
-              </div>
-            </div>
-          }
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" @onclick="ClosePicker">Close</button>
-        </div>
+                <div class="picker-caption">
+                  (@opt.Set?.ToUpperInvariant()) @opt.SetId
+                </div>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        @if (!string.IsNullOrEmpty(PrintsNextPage))
+        {
+          <button class="btn" @onclick="LoadMorePrints">Load more</button>
+        }
+        <button class="btn" @onclick="ClosePicker">Close</button>
       </div>
     </div>
   </div>
 }
 
-<button type="button" class="btn btn-primary" @onclick="SaveAsPdfSheets">
-  Download PDF Sheets (3×3)
-</button>
-
 @code {
-
-  private async Task SaveAsPdfSheets()
+  // === Busy overlay state ===
+  private bool Busy;
+  private string BusyMessage = "Working…";
+  private async Task SetBusy(bool value, string? message = null)
   {
-    var deckName = await JSPrompt("Enter deck name:");
-    if (string.IsNullOrWhiteSpace(deckName)) return;
-
-    var urls = Cards
-      .SelectMany(c => Enumerable.Repeat(c.PngUri?.ToString() ?? "", c.Source.Count))
-      .Where(s => !string.IsNullOrWhiteSpace(s))
-      .ToList();
-    if (urls.Count == 0) return;
-
-    var payload = new { DeckName = deckName.Trim(), ImageUrls = urls };
-
-    await JS.InvokeVoidAsync(
-      "postAndDownload",
-      "api/save-deck-sheets", // <-- PDF endpoint
-      payload,
-      $"{deckName}.pdf"
-    );
+    Busy = value;
+    if (!string.IsNullOrWhiteSpace(message)) BusyMessage = message!;
+    StateHasChanged();
+    await JS.InvokeVoidAsync("ui.setBodyClass", "busy-open", Busy);
   }
-}
 
-@code {
-  private string DeckText = "";
-  private readonly List<string> Errors = new();
-  private readonly List<ChosenCardModel> Cards = new();
+  // === Deck text and parsed cards ===
+  private string DeckText = string.Empty;
 
-  private bool ShowPicker;
-  private bool PickerLoading;
-  private ChosenCardModel? Current;
-  private readonly List<Uri> PickerOptions = new();
-
-  private async Task ParseAndLoad()
+  private class ChosenCard
   {
-    Errors.Clear();
+    public string DisplayName { get; set; } = "";
+    public int Quantity { get; set; } = 1;
+
+    public Uri? PngUri { get; set; }
+    public string? SelectedImageUrl { get; set; }
+
+    public string? SetCode { get; set; }
+    public string? Collector { get; set; }
+    public string? ScryfallId { get; set; }
+
+    public int LineIndex { get; set; } = -1;
+  }
+
+  private List<ChosenCard> Cards = new();
+
+  private bool HighResOnly = true;
+
+  private static readonly Regex RxFull = new(
+      @"^\s*(?<qty>\d+)\s+(?<name>.+?)\s*\(\s*(?<set>[A-Za-z0-9]{2,5})\s*\)\s*(?<cn>[\w\-]+)\s*$",
+      RegexOptions.Compiled);
+
+  private static readonly Regex RxShort = new(
+      @"^\s*(?<qty>\d+)\s+(?<name>.+?)\s*$",
+      RegexOptions.Compiled);
+
+  private sealed class ParsedLine
+  {
+    public int Qty { get; init; }
+    public string Name { get; init; } = "";
+    public string? Set { get; init; }
+    public string? Collector { get; init; }
+  }
+
+  private static ParsedLine? ParseDeckLine(string line)
+  {
+    var m = RxFull.Match(line);
+    if (m.Success)
+      return new ParsedLine {
+        Qty = int.Parse(m.Groups["qty"].Value),
+        Name = m.Groups["name"].Value.Trim(),
+        Set = m.Groups["set"].Value.Trim(),
+        Collector = m.Groups["cn"].Value.Trim()
+      };
+
+    m = RxShort.Match(line);
+    if (m.Success)
+      return new ParsedLine {
+        Qty = int.Parse(m.Groups["qty"].Value),
+        Name = m.Groups["name"].Value.Trim()
+      };
+
+    return null;
+  }
+
+  private static string NormalizeLine(ChosenCard c)
+  {
+    var set = (c.SetCode ?? "").ToUpperInvariant();
+    var cn  = c.Collector ?? "";
+    return $"{c.Quantity} {c.DisplayName}" + (string.IsNullOrWhiteSpace(set) || string.IsNullOrWhiteSpace(cn)
+      ? ""
+      : $" ({set}) {cn}");
+  }
+
+  private void ReplaceLineAt(int index, string newLine)
+  {
+    var lines = DeckText.Replace("\r\n", "\n").Split('\n').ToList();
+    if (index < 0 || index >= lines.Count) return;
+    lines[index] = newLine;
+    DeckText = string.Join(Environment.NewLine, lines);
+  }
+
+  private void OnDeckTextChanged(string _) { }
+
+  // === Parse & Load ===
+  private async Task ParseAndLoad_Wrapper()
+  {
+    await SetBusy(true, "Parsing deck and fetching cards…");
+    try { await ParseAndLoadCore(); }
+    finally { await SetBusy(false); }
+  }
+
+  private async Task ParseAndLoadCore()
+  {
     Cards.Clear();
 
-    var lines = DeckText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-    foreach (var line in lines)
+    var lines = DeckText.Replace("\r\n","\n").Split('\n');
+    for (int i = 0; i < lines.Length; i++)
     {
-      if (!DeckLineModel.TryParse(line, out var dl) || dl is null)
-      {
-        Errors.Add($"Could not parse: \"{line}\"");
-        continue;
-      }
+      var raw = lines[i].Trim();
+      if (string.IsNullOrWhiteSpace(raw)) continue;
 
-      // Prefer exact set+collector when provided; otherwise named fuzzy
-      CardDto? card;
-      if (!string.IsNullOrWhiteSpace(dl.SetCode) && !string.IsNullOrWhiteSpace(dl.CollectorNumber))
+      var parsed = ParseDeckLine(raw);
+      if (parsed is null) continue;
+
+      CardDto? printing = null;
+
+      if (!string.IsNullOrWhiteSpace(parsed.Set) && !string.IsNullOrWhiteSpace(parsed.Collector))
       {
-        card = await Scryfall.GetCardBySetAndCollector(dl.SetCode!, dl.CollectorNumber!);
+        printing = await Scryfall.GetCardBySetAndCollectorAsync(parsed.Set!, parsed.Collector!);
       }
       else
       {
-        card = await Scryfall.GetCardByName("fuzzy", dl.Name);
+        // implement in ScryfallService (see step 3 below)
+        printing = await Scryfall.GetBestPrintingForNameAsync(parsed.Name);
       }
 
-      if (card is null)
-      {
-        Errors.Add($"Scryfall lookup failed for: \"{dl.Name}\"");
+      if (printing is null) continue;
+
+      if (HighResOnly && !string.Equals(printing.ImageStatus, "highres_scan", StringComparison.OrdinalIgnoreCase))
         continue;
-      }
 
-      var png = card.ImageUris?.Png
-                ?? card.CardFaces?.FirstOrDefault()?.ImageUris?.Png;
-
-      if (png is null)
+      var chosen = new ChosenCard
       {
-        Errors.Add($"No PNG found for: \"{dl.Name}\"");
-        continue;
-      }
+        DisplayName = printing.Name ?? parsed.Name,
+        Quantity = parsed.Qty,
+        PngUri = printing.ImageUris?.Png,
+        SelectedImageUrl = printing.ImageUris?.Png?.ToString(),
+        SetCode = printing.Set,
+        Collector = printing.SetId,
+        ScryfallId = printing.Id,
+        LineIndex = i
+      };
 
-      Cards.Add(new ChosenCardModel
+      Cards.Add(chosen);
+
+      if (parsed.Set is null || parsed.Collector is null)
       {
-        Source = dl,
-        PngUri = png,
-        PrintsSearchUri = card.PrintsSearchUri
-      });
+        var norm = NormalizeLine(chosen);
+        ReplaceLineAt(i, norm);
+      }
     }
+
+    StateHasChanged();
   }
-
-  private async Task OpenArtPicker(ChosenCardModel c)
+  
+  private void PickArt(CardDto picked)
   {
-    ShowPicker = true;
-    PickerLoading = true;
-    Current = c;
-    PickerOptions.Clear();
+    if (PickerFor is null) return;
 
-    try
+    // Persist the exact printing and selected art
+    PickerFor.PngUri = picked.ImageUris?.Png ?? PickerFor.PngUri;
+    PickerFor.SelectedImageUrl = PickerFor.PngUri?.ToString();
+    PickerFor.SetCode   = picked.Set            ?? PickerFor.SetCode;
+    PickerFor.Collector = picked.SetId          ?? PickerFor.Collector;
+    PickerFor.ScryfallId= picked.Id             ?? PickerFor.ScryfallId;
+
+    // Rewrite the corresponding deck line in the textarea to the normalized format:
+    // "QTY Name (SET) COLLECTOR#"
+    if (PickerFor.LineIndex >= 0)
     {
-      if (c.PrintsSearchUri is null)
-      {
-        PickerLoading = false;
-        return;
-      }
-
-      var prints = await Scryfall.GetPrintsAsync(c.PrintsSearchUri);
-
-      foreach (var pr in prints)
-      {
-        if (pr.ImageUris?.Png is Uri single) PickerOptions.Add(single);
-
-        if (pr.CardFaces is { Length: > 0 })
-        {
-          foreach (var f in pr.CardFaces)
-          {
-            if (f.ImageUris?.Png is Uri facePng) PickerOptions.Add(facePng);
-          }
-        }
-      }
-    }
-    finally
-    {
-      PickerLoading = false;
-      StateHasChanged();
-    }
-  }
-
-  private void ClosePicker()
-  {
-    ShowPicker = false;
-    Current = null;
-    PickerOptions.Clear();
-  }
-
-  private void ChooseArt(Uri uri)
-  {
-    if (Current is not null)
-    {
-      Current.PngUri = uri;
+      var normalized = NormalizeLine(PickerFor);
+      ReplaceLineAt(PickerFor.LineIndex, normalized);
     }
 
+    // Close the modal
     ClosePicker();
   }
 
-  private async Task PromptAndSave()
+  // === Save images (ZIP) ===
+  private async Task SaveImagesZip_Wrapper()
   {
-    var deckName = await JSPrompt("Enter deck name:");
+    var deckName = await JSPrompt("Enter deck name for images:");
     if (string.IsNullOrWhiteSpace(deckName)) return;
 
     var urls = Cards
-      .SelectMany(c => Enumerable.Repeat(c.PngUri?.ToString() ?? "", c.Source.Count))
+      .SelectMany(c => Enumerable.Repeat(c.SelectedImageUrl ?? c.PngUri?.ToString() ?? "", c.Quantity))
       .Where(s => !string.IsNullOrWhiteSpace(s))
       .ToList();
     if (urls.Count == 0) return;
 
     var payload = new { DeckName = deckName.Trim(), ImageUrls = urls };
 
-    // IMPORTANT: call the JS fetch+download helper. No base64 anywhere.
-    await JS.InvokeVoidAsync("postAndDownload", "api/save-deck", payload, $"{deckName}.zip");
+    await SetBusy(true, "Preparing resized images…");
+    try
+    {
+      await JS.InvokeVoidAsync("postAndDownload", "api/save-deck", payload, $"{deckName}.zip");
+    }
+    finally { await SetBusy(false); }
   }
 
-  // JS interop helpers
-  [Inject] IJSRuntime JS { get; set; } = default!;
-
-  private async Task<string?> JSPrompt(string message)
+  // === Save PDF (3×3 sheets) ===
+  private async Task SaveAsPdfSheets_Wrapper()
   {
-    return await JS.InvokeAsync<string?>("prompt", message);
+    var deckName = await JSPrompt("Enter deck name:");
+    if (string.IsNullOrWhiteSpace(deckName)) return;
+
+    var urls = Cards
+      .SelectMany(c => Enumerable.Repeat(c.SelectedImageUrl ?? c.PngUri?.ToString() ?? "", c.Quantity))
+      .Where(s => !string.IsNullOrWhiteSpace(s))
+      .ToList();
+    if (urls.Count == 0) return;
+
+    var payload = new { DeckName = deckName.Trim(), ImageUrls = urls };
+
+    await SetBusy(true, "Generating PDF…");
+    try
+    {
+      await JS.InvokeVoidAsync("postAndDownload", "api/save-deck-sheets", payload, $"{deckName}.pdf");
+    }
+    finally { await SetBusy(false); }
   }
 
-  private class SaveDeckRequest
+  private Task<string?> JSPrompt(string message) =>
+      JS.InvokeAsync<string?>("prompt", message).AsTask();
+
+  // === Art picker state ===
+  private bool ShowPicker;
+  private ChosenCard? PickerFor;
+  private List<CardDto> PickerOptions = new();
+  private string? PrintsNextPage;
+
+  private async Task OpenArtPicker(ChosenCard c)
   {
-    public string DeckName { get; set; } = "";
-    public List<string> ImageUrls { get; set; } = new();
+    PickerFor = c;
+    PickerOptions.Clear();
+    PrintsNextPage = null;
+
+    var seed = !string.IsNullOrWhiteSpace(c.SetCode) && !string.IsNullOrWhiteSpace(c.Collector)
+      ? await Scryfall.GetCardBySetAndCollectorAsync(c.SetCode!, c.Collector!)
+      : await Scryfall.GetBestPrintingForNameAsync(c.DisplayName);
+
+    if (seed is not null)
+    {
+      var page = await Scryfall.GetPrintsPageAsync(new Uri(seed.PrintsSearchUri.ToString()));
+      var list = page.Data;
+
+      if (HighResOnly)
+        list = list.Where(p => string.Equals(p.ImageStatus, "highres_scan", StringComparison.OrdinalIgnoreCase)).ToList();
+
+      PickerOptions.AddRange(list);
+      PrintsNextPage = page.NextPage;
+    }
+
+    ShowPicker = true;
+    StateHasChanged();
+    await JS.InvokeVoidAsync("ui.addBodyClass", "modal-open");
+  }
+
+  private async Task LoadMorePrints()
+  {
+    if (string.IsNullOrWhiteSpace(PrintsNextPage)) return;
+    var page = await Scryfall.GetPrintsPageAsync(new Uri(PrintsNextPage));
+    var list = page.Data;
+
+    if (HighResOnly)
+      list = list.Where(p => string.Equals(p.ImageStatus, "highres_scan", StringComparison.OrdinalIgnoreCase)).ToList();
+
+    PickerOptions.AddRange(list);
+    PrintsNextPage = page.NextPage;
+    StateHasChanged();
+  }
+
+  private async void ClosePicker()
+  {
+    ShowPicker = false;
+    PickerFor = null;
+    PickerOptions.Clear();
+    PrintsNextPage = null;
+    await JS.InvokeVoidAsync("ui.removeBodyClass", "modal-open");
+    StateHasChanged();
   }
 }

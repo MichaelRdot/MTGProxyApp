@@ -345,3 +345,39 @@ img {
     padding: 0;
     border-radius: 8px;
 }
+
+/* Busy overlay + scroll lock */
+body.busy-open { overflow: hidden; }
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 4000;
+}
+
+.overlay-box {
+    background: var(--card, #1f1f1f);
+    color: var(--fg, #fff);
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.4);
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    font-size: 0.95rem;
+}
+
+.spinner {
+    width: 18px;
+    height: 18px;
+    border: 3px solid rgba(255,255,255,.25);
+    border-top-color: #8ab4f8;
+    border-radius: 50%;
+    animation: spin .9s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
