@@ -26,6 +26,12 @@
     <div class="status" hidden="@string.IsNullOrWhiteSpace(status)">
       <pre>@status</pre>
     </div>
+    
+    <label class="opt" style="display:flex; gap:.4rem; align-items:center;">
+      <input type="checkbox" @bind="useBlackCorners" />
+      <span>Black corners + full cut lines</span>
+    </label>
+    
   </div>
 
   <div class="results" hidden="@(cards.Count == 0)">
@@ -69,8 +75,17 @@
     if (images.Count == 0)
       return;
 
-    var payload = new { DeckName = string.IsNullOrWhiteSpace(deckName) ? "MTG Proxies" : deckName, ImageUrls = images };
-    await JS.InvokeVoidAsync("postAndDownload", "/api/save-deck-sheFetchCardVmAsyncets", payload, $"{(string.IsNullOrWhiteSpace(deckName) ? "MTG Proxies" : deckName)}.pdf");
+    var payload = new
+    {
+      DeckName = string.IsNullOrWhiteSpace(deckName) ? "MTG Proxies" : deckName,
+      ImageUrls = images,
+      UseBlackCorners = useBlackCorners,     // NEW
+      FullPageCutLines = useBlackCorners     // send true when the toggle is on
+    };
+    await JS.InvokeVoidAsync("postAndDownload",
+      "/api/save-deck-sheets",
+      payload,
+      $"{(string.IsNullOrWhiteSpace(deckName) ? "MTG Proxies" : deckName)}.pdf");
   }
   
   // --- Normalizer ---
@@ -325,6 +340,10 @@
       PrintsSearchUri = card.PrintsSearchUri
     };
   }
+  
+  // --- Black Corners ---
+  private bool useBlackCorners = false;
+  
 }
 
 
