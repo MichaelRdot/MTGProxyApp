@@ -1,7 +1,7 @@
 ﻿window.postAndDownload = async (url, payload, filename) => {
     const resp = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify(payload)
     });
     if (!resp.ok) {

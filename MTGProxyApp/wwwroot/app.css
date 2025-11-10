@@ -347,12 +347,14 @@ img {
 }
 
 /* Busy overlay + scroll lock */
-body.busy-open { overflow: hidden; }
+body.busy-open {
+    overflow: hidden;
+}
 
 .overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,.55);
+    background: rgba(0, 0, 0, .55);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -364,7 +366,7 @@ body.busy-open { overflow: hidden; }
     color: var(--fg, #fff);
     padding: 1rem 1.25rem;
     border-radius: 12px;
-    box-shadow: 0 8px 28px rgba(0,0,0,.4);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .4);
     display: flex;
     align-items: center;
     gap: .75rem;
@@ -374,10 +376,14 @@ body.busy-open { overflow: hidden; }
 .spinner {
     width: 18px;
     height: 18px;
-    border: 3px solid rgba(255,255,255,.25);
+    border: 3px solid rgba(255, 255, 255, .25);
     border-top-color: #8ab4f8;
     border-radius: 50%;
     animation: spin .9s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

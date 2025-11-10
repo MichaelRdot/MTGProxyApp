@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.IO.Compression;
+﻿using System.IO.Compression;
+using Microsoft.AspNetCore.Mvc;
 
 namespace MTGProxyApp.Controllers;
 
@@ -7,12 +7,6 @@ namespace MTGProxyApp.Controllers;
 [Route("api/save-deck")]
 public class SaveDeckController : ControllerBase
 {
-    public class SaveDeckRequest
-    {
-        public string DeckName { get; set; } = "";
-        public List<string> ImageUrls { get; set; } = new();
-    }
-
     [HttpPost]
     public async Task<IActionResult> SaveDeck([FromBody] SaveDeckRequest req, [FromServices] IHttpClientFactory factory)
     {
@@ -24,9 +18,9 @@ public class SaveDeckController : ControllerBase
 
         // Build ZIP entirely in memory—no disk writes
         var ms = new MemoryStream();
-        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
+        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
         {
-            int i = 1;
+            var i = 1;
             foreach (var url in req.ImageUrls)
             {
                 // Create ZIP entry name like 001.png, 002.png, ...
@@ -42,7 +36,7 @@ public class SaveDeckController : ControllerBase
         }
 
         ms.Position = 0; // reset for reading
-        return File(ms, "application/zip", $"{safe}.zip");    
+        return File(ms, "application/zip", $"{safe}.zip");
     }
 
     private static string Sanitize(string s)
@@ -50,5 +44,11 @@ public class SaveDeckController : ControllerBase
         foreach (var c in Path.GetInvalidFileNameChars())
             s = s.Replace(c, '_');
         return s.Trim();
+    }
+
+    public class SaveDeckRequest
+    {
+        public string DeckName { get; set; } = "";
+        public List<string> ImageUrls { get; set; } = new();
     }
 }

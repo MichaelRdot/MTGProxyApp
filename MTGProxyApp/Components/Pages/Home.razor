@@ -1,37 +1,47 @@
 ﻿@page "/"
 @using System.Text.RegularExpressions
-@using MTGProxyApp.Dtos
 @using MTGProxyApp.Services
-@using Microsoft.JSInterop
 @inject ScryfallService Scryfall
 @inject ILogger<Home> Logger
 @inject IJSRuntime JS
 @rendermode InteractiveServer
 
-
 <div class="page">
   <h1>MTG Proxy Builder</h1>
 
   <div class="controls">
-    <textarea class="deck" placeholder="Paste decklist here (e.g.\n4 Lightning Bolt\n2 Ponder\n1 Sol Ring (CMM) 412)" @bind=deckText></textarea>
+    <textarea class="deck" placeholder="Paste decklist here (e.g. 4 Lightning Bolt, 2 Ponder, 1 Sol Ring (CMM) 412)"
+              @bind="deckText"></textarea>
 
-    <input class="deck-name" placeholder="Deck name (for PDF file)" @bind=deckName />
+    <input class="deck-name" placeholder="Deck name (for PDF file)" @bind="deckName"/>
 
     <div class="buttons">
-      <button type="button" @onclick="ParseAndLoadAsync" disabled="@isLoading">@((isLoading ? "Loading…" : "Parse & Load"))</button>
+      <button type="button" @onclick="ParseAndLoadAsync" disabled="@isLoading">
+        @(isLoading ? "Loading…" : "Parse & Load")
+      </button>
+
       <button type="button" @onclick="Clear" disabled="@isLoading">Clear</button>
-      <button type="button" @onclick="SaveAsPdfAsync" disabled="@(isLoading || cards.Count == 0)">Save as PDF</button>
+
+      <!-- Button-style toggle for black corners -->
+      <label class="buttonlike">
+        <input type="checkbox" @bind="useBlackCorners"/>
+        <span class="check" aria-hidden="true">✓</span>
+        <span>Black corners</span>
+      </label>
+      <label class="buttonlike">
+        <input type="checkbox" @bind="printFrontAndBack"/>
+        <span class="check" aria-hidden="true">✓</span>
+        <span>Print front and back</span>
+      </label>
+
+      <button type="button" @onclick="SaveAsPdfAsync" disabled="@(isLoading || cards.Count == 0)">
+        Save as PDF
+      </button>
     </div>
 
     <div class="status" hidden="@string.IsNullOrWhiteSpace(status)">
       <pre>@status</pre>
     </div>
-    
-    <label class="opt" style="display:flex; gap:.4rem; align-items:center;">
-      <input type="checkbox" @bind="useBlackCorners" />
-      <span>Black corners + full cut lines</span>
-    </label>
-    
   </div>
 
   <div class="results" hidden="@(cards.Count == 0)">
@@ -43,7 +53,8 @@
           <div class="thumb">
             @if (!string.IsNullOrWhiteSpace(c.ImageUrl))
             {
-              <img @onclick="() => OpenArtPickerAsync(c)" style="cursor:pointer" src="@c.ImageUrl" alt="@c.DisplayName" />
+              <img @onclick="() => OpenArtPickerAsync(c)" style="cursor:pointer" src="@c.ImageUrl"
+                   alt="@c.DisplayName"/>
             }
             else
             {
@@ -51,9 +62,18 @@
             }
           </div>
           <div class="meta">
-            <div class="name" title="@c.DisplayName">@c.DisplayName</div>
-            <div class="details">@c.Set?.ToUpper() @c.Collector</div>
-            <div class="qty">@c.Qty</div>
+            <div>
+              <div class="name" title="@c.DisplayName">@c.DisplayName</div>
+              <div
+                class="details">
+                @(string.IsNullOrWhiteSpace(c.Set) || string.IsNullOrWhiteSpace(c.Collector) ? "" : $"{c.Set!.ToUpper()} {c.Collector}")
+              </div>
+            </div>
+            <div class="qty">
+              <button type="button" class="qty-btn" @onclick="() => ChangeQty(c, +1)">+</button>
+              <span>@c.Qty</span>
+              <button type="button" class="qty-btn" @onclick="() => ChangeQty(c, -1)">-</button>
+            </div>
           </div>
         </div>
       }
@@ -61,143 +81,83 @@
   </div>
 </div>
 
+@if (showArtPicker && selectedCard is not null)
+{
+  <div class="art-picker-backdrop" @onclick="CloseArtPicker">
+    <div class="art-picker" @onclick="Noop" @onclick:stopPropagation="true">
+      <div class="art-picker-header">
+        <strong>Choose art for @selectedCard.DisplayName</strong>
+        <button type="button" class="close" @onclick="CloseArtPicker">✕</button>
+      </div>
+
+      <div class="art-picker-grid">
+        @foreach (var opt in artOptions)
+        {
+          <button type="button" class="art-option" title="@($"{opt.Set?.ToUpper()} {opt.Collector}")"
+                  @onclick="() => ChooseArt(opt)">
+            <img src="@opt.ImageUrl" alt="@($"{opt.Set} {opt.Collector}")"/>
+          </button>
+        }
+      </div>
+
+      <div class="art-picker-footer">
+        <button type="button" disabled="@(isLoadingArts || nextPrintsPage is null)" @onclick="LoadMoreArtsAsync">
+          @(isLoadingArts ? "Loading…" : nextPrintsPage is null ? "No more" : "Load more")
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
 @code {
-  // --- Save as PDF ---
-  private string deckName = string.Empty;
 
-  private async Task SaveAsPdfAsync()
+  private sealed record ParsedLine(int Qty, string Name, string? Set, string? Collector);
+
+  private void Noop()
   {
-    var images = cards
-      .Where(c => !string.IsNullOrWhiteSpace(c.ImageUrl))
-      .SelectMany(c => Enumerable.Repeat(c.ImageUrl!, Math.Max(1, c.Qty)))
-      .ToList();
-
-    if (images.Count == 0)
-      return;
-
-    var payload = new
-    {
-      DeckName = string.IsNullOrWhiteSpace(deckName) ? "MTG Proxies" : deckName,
-      ImageUrls = images,
-      UseBlackCorners = useBlackCorners,     // NEW
-      FullPageCutLines = useBlackCorners     // send true when the toggle is on
-    };
-    await JS.InvokeVoidAsync("postAndDownload",
-      "/api/save-deck-sheets",
-      payload,
-      $"{(string.IsNullOrWhiteSpace(deckName) ? "MTG Proxies" : deckName)}.pdf");
-  }
-  
-  // --- Normalizer ---
-  private static string NormalizeLine(ProxyCardVm c)
-  {
-    var setPart = (!string.IsNullOrWhiteSpace(c.Set) && !string.IsNullOrWhiteSpace(c.Collector))
-      ? $" ({c.Set!.ToUpperInvariant()}) {c.Collector}"
-      : string.Empty;
-
-    return $"{c.Qty} {c.DisplayName}{setPart}";
   }
 
-  // --- Art picker ---
-  private bool showArtPicker = false;
-  private ProxyCardVm? selectedCard;
-  private List<ArtOption> artOptions = new();
-  private Uri? nextPrintsPage;
-  private bool isLoadingArts = false;
+  private sealed class ProxyCardVm
+  {
+    public required string Name { get; init; }
+    public required string DisplayName { get; init; }
+    public int Qty { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? Set { get; set; }
+    public string? Collector { get; set; }
+    public string? ScryfallId { get; init; }
+    public string? BackImageUrl { get; set; }
+    public Uri? PrintsSearchUri { get; init; }
+  }
 
   private sealed class ArtOption
   {
     public required string ImageUrl { get; init; }
+    public string? BackImageUrl { get; init; }
     public string? Set { get; init; }
     public string? Collector { get; init; }
   }
 
-  private async Task OpenArtPickerAsync(ProxyCardVm card)
-  {
-    selectedCard = card;
-    artOptions.Clear();
-    showArtPicker = true;
-    nextPrintsPage = card.PrintsSearchUri;
-    await LoadMoreArtsAsync();
-  }
+  private string deckText = "";
+  private string deckName = "";
+  private bool useBlackCorners;
 
-  private async Task LoadMoreArtsAsync()
-  {
-    if (nextPrintsPage is null) return;
-    isLoadingArts = true;
-
-    var page = await Scryfall.GetPrintsPageAsync(nextPrintsPage);
-    nextPrintsPage = string.IsNullOrWhiteSpace(page.NextPage) ? null : new Uri(page.NextPage);
-
-    foreach (var d in page.Data)
-    {
-      var url = d.ImageUris?.Png?.ToString();
-      if (!string.IsNullOrWhiteSpace(url))
-        artOptions.Add(new ArtOption { ImageUrl = url!, Set = d.Set, Collector = d.CollectorNumber });
-    }
-
-    isLoadingArts = false;
-    StateHasChanged();
-  }
-
-  private void ChooseArt(ArtOption opt)
-  {
-    if (selectedCard is null) return;
-
-    selectedCard.ImageUrl = opt.ImageUrl;
-    if (!string.IsNullOrWhiteSpace(opt.Set)) selectedCard.Set = opt.Set;
-    if (!string.IsNullOrWhiteSpace(opt.Collector)) selectedCard.Collector = opt.Collector;
-
-    // Rebuild the deck text to reflect the chosen printing
-    deckText = string.Join("\n", cards.Select(NormalizeLine));
-
-    showArtPicker = false;
-  }
-
-  private void CloseArtPicker()
-  {
-    showArtPicker = false;
-  }
-
-  // ---------------------------------------------------------
-  // View model types (kept local to this page for simplicity)
-  // ---------------------------------------------------------
-  private sealed record ParsedLine(int Qty, string Name, string? Set, string? Collector);
-
-  private sealed class ProxyCardVm
-  {
-    public required string DisplayName { get; init; }
-    public required int Qty { get; init; }
-    public string? ImageUrl { get; set; }
-    public string? Set { get; set; }
-    public string? Collector { get; set; }
-    public string? ScryfallId { get; set; }
-    public Uri? PrintsSearchUri { get; init; }
-  }
-
-  // ---------------------------------------------------------
-  // State
-  // ---------------------------------------------------------
-  private string deckText = string.Empty;
-  private bool isLoading = false;
-  private string status = string.Empty;
   private List<ProxyCardVm> cards = new();
-  private CancellationTokenSource? _cts;
+  private string status = "";
+  private bool isLoading;
 
-  // ---------------------------------------------------------
-  // UI handlers
-  // ---------------------------------------------------------
+  private bool showArtPicker;
+  private ProxyCardVm? selectedCard;
+  private readonly List<ArtOption> artOptions = new();
+  private Uri? nextPrintsPage;
+  private bool isLoadingArts;
+
   private async Task ParseAndLoadAsync()
   {
-    if (isLoading)
-      return;
-
+    if (isLoading) return;
     isLoading = true;
-    status = string.Empty;
-    cards.Clear();
-    _cts?.Cancel();
-    _cts = new CancellationTokenSource();
-    var token = _cts.Token;
+    status = "Parsing deck…";
+    StateHasChanged();
 
     try
     {
@@ -211,40 +171,24 @@
       status = $"Parsed {parsed.Count} line(s). Fetching printings…";
       StateHasChanged();
 
-      // Fetch concurrently, but be gentle — limit parallelism
       var throttler = new SemaphoreSlim(8);
       var results = new List<ProxyCardVm>();
+      var cts = new CancellationTokenSource();
 
       var tasks = parsed.Select(async line =>
       {
-        await throttler.WaitAsync(token);
+        await throttler.WaitAsync(cts.Token);
         try
         {
-          var vm = await FetchCardVmAsync(line, token);
+          var vm = await FetchCardVmAsync(line, cts.Token);
           if (vm != null)
           {
-            lock (results)
-            {
-              results.Add(vm);
-            }
+            lock (results) results.Add(vm);
           }
         }
         catch (Exception ex)
         {
           Logger.LogError(ex, "Failed to fetch card for {Line}", line);
-          lock (results)
-          {
-            // Add a placeholder so the user sees which one failed
-            results.Add(new ProxyCardVm
-            {
-              DisplayName = $"{line.Name} (failed)",
-              Qty = line.Qty,
-              ImageUrl = null,
-              Set = line.Set,
-              Collector = line.Collector,
-              ScryfallId = null
-            });
-          }
         }
         finally
         {
@@ -254,51 +198,256 @@
 
       await Task.WhenAll(tasks);
 
-      // Expand quantities into individual proxies later — for now keep qty
-      cards = results
-        .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
-        .ToList();
+      cards = results;
       deckText = string.Join("\n", cards.Select(NormalizeLine));
-      status = "Done.";
+
+      status = $"Loaded {cards.Count} card(s).";
     }
     finally
     {
       isLoading = false;
-      await InvokeAsync(StateHasChanged);
     }
   }
 
   private void Clear()
   {
-    deckText = string.Empty;
+    deckText = "";
+    deckName = "";
+    status = "";
     cards.Clear();
-    status = string.Empty;
+    showArtPicker = false;
+    artOptions.Clear();
+    nextPrintsPage = null;
   }
 
-  // ---------------------------------------------------------
-  // Parsing + Fetching
-  // ---------------------------------------------------------
+  // --- Front and Back sided printing ---
+  private bool printFrontAndBack;
+
+  private async Task SaveAsPdfAsync()
+  {
+    const string DefaultBack = "/img/proxy-back.png"; // used only in duplex mode when a card lacks a back
+
+    var filename = $"{(string.IsNullOrWhiteSpace(deckName) ? "MTG Proxies" : deckName)}.pdf";
+
+    if (printFrontAndBack)
+    {
+      // === Duplex mode: 2 pages per 9 – fronts + backs ===
+      var fronts = new List<string>();
+      var backs = new List<string>();
+
+      foreach (var c in cards)
+      {
+        if (string.IsNullOrWhiteSpace(c.ImageUrl)) continue;
+
+        var qty = Math.Max(1, c.Qty);
+        var front = c.ImageUrl!;
+        var back = !string.IsNullOrWhiteSpace(c.BackImageUrl) ? c.BackImageUrl! : DefaultBack;
+
+        for (var i = 0; i < qty; i++)
+        {
+          fronts.Add(front);
+          backs.Add(back); // note: controller now only draws backs in slots with a front
+        }
+      }
+
+      if (fronts.Count == 0)
+      {
+        status = "No images to save.";
+        return;
+      }
+
+      var payload = new
+      {
+        DeckName = string.IsNullOrWhiteSpace(deckName) ? "MTG Proxies" : deckName,
+        ImageUrls = fronts,
+        BackImageUrls = backs,
+        DefaultBackImageUrl = DefaultBack,
+        IncludeBackPages = true, // <-- duplex
+        MirrorBackHorizontally = true, // long-edge flip default
+        UseBlackCorners = useBlackCorners,
+        FullPageCutLines = true
+      };
+
+      await JS.InvokeVoidAsync("postAndDownload", "/api/save-deck-sheets", payload, filename);
+    }
+    else
+    {
+      // === Single-sided mode: backs become separate cards (only for MDFCs with a real back) ===
+      var images = new List<string>();
+
+      foreach (var c in cards)
+      {
+        if (string.IsNullOrWhiteSpace(c.ImageUrl)) continue;
+        var qty = Math.Max(1, c.Qty);
+
+        for (var i = 0; i < qty; i++)
+        {
+          images.Add(c.ImageUrl!); // front
+          if (!string.IsNullOrWhiteSpace(c.BackImageUrl))
+            images.Add(c.BackImageUrl!); // add the back as another card
+        }
+      }
+
+      if (images.Count == 0)
+      {
+        status = "No images to save.";
+        return;
+      }
+
+      var payload = new
+      {
+        DeckName = string.IsNullOrWhiteSpace(deckName) ? "MTG Proxies" : deckName,
+        ImageUrls = images, // only fronts (and backs as extra cards)
+        BackImageUrls = Array.Empty<string>(), // keep binder happy
+        DefaultBackImageUrl = (string?)null,
+        IncludeBackPages = false, // <-- single-sided
+        MirrorBackHorizontally = false, // irrelevant here
+        UseBlackCorners = useBlackCorners,
+        FullPageCutLines = true
+      };
+
+      await JS.InvokeVoidAsync("postAndDownload", "/api/save-deck-sheets", payload, filename);
+    }
+  }
+
+
+  private async Task OpenArtPickerAsync(ProxyCardVm card)
+  {
+    selectedCard = card;
+    artOptions.Clear();
+    showArtPicker = true;
+
+    nextPrintsPage = card.PrintsSearchUri;
+    if (nextPrintsPage is null && !string.IsNullOrWhiteSpace(card.ScryfallId))
+    {
+      nextPrintsPage = new Uri($"https://api.scryfall.com/cards/search?order=released&q=oracleid%3A{card.ScryfallId}&unique=prints");
+    }
+
+    await LoadMoreArtsAsync();
+  }
+
+  private async Task LoadMoreArtsAsync()
+  {
+    if (nextPrintsPage is null) return;
+    isLoadingArts = true;
+
+    try
+    {
+      var page = await Scryfall.GetPrintsPageAsync(nextPrintsPage);
+      nextPrintsPage = string.IsNullOrWhiteSpace(page.NextPage) ? null : new Uri(page.NextPage);
+
+      foreach (var d in page.Data)
+      {
+        // front
+        var front = d.ImageUris?.Png?.ToString()
+                    ?? d.CardFaces?.FirstOrDefault()?.ImageUris?.Png?.ToString();
+
+        if (string.IsNullOrWhiteSpace(front))
+          continue;
+
+        // back (if double-faced)
+        var back = d.CardFaces != null && d.CardFaces.Length > 1
+          ? d.CardFaces[1].ImageUris?.Png?.ToString()
+          : null;
+
+        artOptions.Add(new ArtOption
+        {
+          ImageUrl = front!,
+          BackImageUrl = back, // NEW
+          Set = d.Set,
+          Collector = d.CollectorNumber
+        });
+      }
+    }
+    finally
+    {
+      isLoadingArts = false;
+      StateHasChanged();
+    }
+  }
+
+  private void ChooseArt(ArtOption opt)
+  {
+    if (selectedCard is null) return;
+
+    selectedCard.ImageUrl = opt.ImageUrl;
+    selectedCard.BackImageUrl = opt.BackImageUrl; // NEW
+
+    if (!string.IsNullOrWhiteSpace(opt.Set)) selectedCard.Set = opt.Set;
+    if (!string.IsNullOrWhiteSpace(opt.Collector)) selectedCard.Collector = opt.Collector;
+
+    deckText = string.Join("\n", cards.Select(NormalizeLine));
+    showArtPicker = false;
+  }
+
+  private void CloseArtPicker()
+  {
+    showArtPicker = false;
+  }
+
+  private void ChangeQty(ProxyCardVm card, int delta)
+  {
+    var newQty = card.Qty + delta;
+
+    if (newQty <= 0)
+    {
+      cards.Remove(card);
+    }
+    else
+    {
+      card.Qty = newQty;
+    }
+
+    deckText = string.Join("\n", cards.Select(NormalizeLine));
+  }
+
+  private async Task<ProxyCardVm?> FetchCardVmAsync(ParsedLine line, CancellationToken ct)
+  {
+    CardDto? card = null;
+
+    if (!string.IsNullOrWhiteSpace(line.Set) && !string.IsNullOrWhiteSpace(line.Collector))
+      card = await Scryfall.GetCardBySetAndCollectorAsync(line.Set!, line.Collector!);
+
+    card ??= await Scryfall.GetBestPrintingForNameAsync(line.Name);
+    if (card is null) return null;
+
+    // front
+    var front =
+      card.ImageUris?.Png?.ToString()
+      ?? card.CardFaces?.FirstOrDefault()?.ImageUris?.Png?.ToString();
+
+    // back (for MDFCs / double-faced)
+    var back =
+      card.CardFaces != null && card.CardFaces.Length > 1
+        ? card.CardFaces[1].ImageUris?.Png?.ToString()
+        : null;
+
+    return new ProxyCardVm
+    {
+      Name = card.Name ?? line.Name,
+      DisplayName = line.Name,
+      Qty = line.Qty,
+      ImageUrl = front,
+      BackImageUrl = back, // NEW
+      Set = card.Set,
+      Collector = card.CollectorNumber,
+      ScryfallId = card.Id,
+      PrintsSearchUri = card.PrintsSearchUri
+    };
+  }
+
   private static IEnumerable<ParsedLine> ParseDeckText(string text)
   {
-    if (string.IsNullOrWhiteSpace(text))
-      yield break;
-
-    // Pattern: [qty] [name] [(SET) collector]
-    // Examples:
-    // 4 Lightning Bolt
-    // 2 Ponder
-    // 1 Sol Ring (CMM) 412
-    // 3 Thoughtseize (LRW) 145
     var rx = new Regex(
-      pattern: "^\\s*(?<qty>\\d+)?\\s*(?:x)?\\s*(?<name>[^()\\n]+?)(?:\\s*\\((?<set>[A-Za-z0-9]{2,5})\\)\\s*(?<coll>[^\\s]+))?\\s*$",
-      options: RegexOptions.Multiline | RegexOptions.CultureInvariant);
+      @"^\s*(?<qty>\d+)?\s*(?:x)?\s*(?<name>[^()\n]+?)(?:\s*\((?<set>[A-Za-z0-9]{2,5})\)\s*(?<coll>[^\s]+))?\s*$",
+      RegexOptions.Multiline | RegexOptions.CultureInvariant);
 
     foreach (Match m in rx.Matches(text))
     {
       if (!m.Success) continue;
       var qty = 1;
       var qtyStr = m.Groups["qty"].Value;
-      if (!string.IsNullOrWhiteSpace(qtyStr) && int.TryParse(qtyStr, out var q) && q > 0) qty = q;
+      if (!string.IsNullOrWhiteSpace(qtyStr) && int.TryParse(qtyStr, out var q)) qty = Math.Max(1, q);
 
       var name = m.Groups["name"].Value.Trim();
       if (string.IsNullOrWhiteSpace(name)) continue;
@@ -310,93 +459,244 @@
     }
   }
 
-  private async Task<ProxyCardVm?> FetchCardVmAsync(ParsedLine line, CancellationToken ct)
+  private static string NormalizeLine(ProxyCardVm c)
   {
-    CardDto? card = null;
-
-    // Prefer explicit set+collector when provided
-    if (!string.IsNullOrWhiteSpace(line.Set) && !string.IsNullOrWhiteSpace(line.Collector))
-    {
-      card = await Scryfall.GetCardBySetAndCollectorAsync(line.Set!, line.Collector!);
-    }
-
-    // Otherwise, try exact name, then fuzzy
-    card ??= await Scryfall.GetBestPrintingForNameAsync(line.Name);
-
-    if (card is null)
-      return null;
-
-    var img = card.ImageUris?.Png?.ToString()
-              ?? card.CardFaces?.FirstOrDefault()?.ImageUris?.Png?.ToString();
-
-    return new ProxyCardVm
-    {
-      DisplayName = card.Name ?? line.Name,
-      Qty = line.Qty,
-      ImageUrl = img,
-      Set = card.Set,
-      Collector = card.CollectorNumber,
-      ScryfallId = card.Id, 
-      PrintsSearchUri = card.PrintsSearchUri
-    };
+    var setPart = !string.IsNullOrWhiteSpace(c.Set) && !string.IsNullOrWhiteSpace(c.Collector)
+      ? $" ({c.Set!.ToUpperInvariant()}) {c.Collector}"
+      : string.Empty;
+    return $"{c.Qty} {c.Name}{setPart}";
   }
-  
-  // --- Black Corners ---
-  private bool useBlackCorners = false;
-  
+
 }
 
-
-  @if (showArtPicker && selectedCard is not null)
-  {
-    <div class="art-picker-backdrop" @onclick="CloseArtPicker">
-      <div class="art-picker" @onclick:stopPropagation="true">
-        <div class="art-picker-header">
-          <strong>Choose art for @selectedCard.DisplayName</strong>
-          <button type="button" class="close" @onclick="CloseArtPicker">✕</button>
-        </div>
-        <div class="art-picker-grid">
-          @foreach (var opt in artOptions)
-          {
-            <button type="button" class="art-option" title="@($"{opt.Set?.ToUpper()} {opt.Collector}")" @onclick="() => ChooseArt(opt)">
-              <img src="@opt.ImageUrl" alt="@($"{opt.Set} {opt.Collector}")" />
-            </button>
-          }
-        </div>
-        <div class="art-picker-footer">
-          <button type="button" disabled="@(isLoadingArts || nextPrintsPage is null)" @onclick="LoadMoreArtsAsync">
-            @(isLoadingArts ? "Loading…" : (nextPrintsPage is null ? "No more" : "Load more"))
-          </button>
-        </div>
-      </div>
-    </div>
+<style>
+  .page {
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 0 1rem;
   }
 
-<style>
-.page { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
-.controls { display: grid; gap: 0.75rem; }
-.deck { width: 100%; min-height: 220px; font: 14px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; padding: .75rem; }
-.buttons { display:flex; gap:.5rem; }
-.buttons button { padding: .5rem .9rem; }
-.status pre { background:#666; padding:.5rem .75rem; border-radius:6px; white-space:pre-wrap; }
-.results { margin-top:1.25rem; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-.card { border: 1px solid #e5e5e5; border-radius: 10px; padding: 10px; display:flex; flex-direction:column; gap:.5rem; }
-.thumb { width: 100%; aspect-ratio: 63/88; display:grid; place-items:center; background:#fafafa; border-radius:8px; overflow:hidden; }
-.thumb img { width: 100%; height: 100%; object-fit: cover; }
-.placeholder { color:#888; font-size: 12px; }
-.meta { display:flex; align-items: center; justify-content: space-between; gap:.5rem; }
-.name { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.details { font-size:12px; color:#666; }
-.qty { font-weight:600; }
+  .controls {
+    display: grid;
+    gap: 0.75rem;
+  }
 
-.art-picker-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display:grid; place-items:center; z-index: 1000; }
-.art-picker { background: rgba(0,0,0,.45); border-radius: 10px; width: min(900px, 92vw); max-height: 90vh; overflow: auto; padding: 1rem; display:flex; flex-direction:column; gap:.75rem; }
-.art-picker-header { display:flex; align-items:center; justify-content: space-between; }
-.art-picker-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: .5rem; }
-.art-option { padding: 0; border: none; background: transparent; cursor: pointer; }
-.art-option img { width: 100%; aspect-ratio: 63 / 88; object-fit: cover; display:block; border-radius: 6px; }
-.art-picker-footer { display:flex; justify-content:center; margin-top: .5rem; }
-.deck-name { width: 100%; padding: .5rem .75rem; border: 1px solid #e5e5e5; border-radius: 6px; font: inherit; }
+  .deck {
+    width: 100%;
+    min-height: 220px;
+    font: 14px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    padding: .75rem;
+  }
 
+  .deck-name {
+    width: 100%;
+    padding: .5rem .75rem;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    font: inherit;
+  }
+
+  .buttons {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+  }
+
+  .buttons button {
+    padding: .5rem .9rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #0f1720;
+    font: inherit;
+  }
+
+  .buttonlike {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    font: inherit;
+    line-height: 1; /* match other buttons */
+    padding: .5rem .9rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #0f1720;
+    cursor: pointer;
+  }
+
+  /* visually hide the native checkbox, keep accessible */
+  .buttonlike input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .buttonlike .check {
+    width: 1rem;
+    height: 1rem;
+    display: grid;
+    place-items: center;
+    border: 1px solid #bbb;
+    border-radius: 3px;
+    font-weight: 700;
+    font-size: .85rem;
+    line-height: 1;
+    background: transparent;
+    color: transparent; /* hidden when unchecked */
+  }
+
+  .buttonlike input:checked ~ .check {
+    background: #222;
+    color: #fff;
+    border-color: #222;
+  }
+
+  .status pre {
+    background: #0f1720;
+    padding: .5rem .75rem;
+    border-radius: 6px;
+    white-space: pre-wrap;
+  }
+
+  .results {
+    margin-top: 1.25rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+  }
+
+  .thumb {
+    width: 100%;
+    aspect-ratio: 63/88;
+    display: grid;
+    place-items: center;
+    background: #fafafa;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .placeholder {
+    color: #888;
+    font-size: 12px;
+  }
+
+  .meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+  }
+
+  .name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .details {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .qty {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+  }
+
+  .qty-btn {
+    width: 1.6rem;
+    height: 1.6rem;
+    display: inline-grid;
+    place-items: center;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #0f1720;
+    cursor: pointer;
+  }
+
+  .qty-btn:active {
+    transform: translateY(1px);
+  }
+
+  .art-picker-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .45);
+    display: grid;
+    place-items: center;
+    z-index: 1000;
+  }
+
+  .art-picker {
+    background: #0f1720;
+    border-radius: 10px;
+    width: min(900px, 92vw);
+    max-height: 90vh;
+    overflow: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+  }
+
+  .art-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .art-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: .5rem;
+  }
+
+  .art-option {
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .art-option img {
+    width: 100%;
+    aspect-ratio: 63 / 88;
+    object-fit: cover;
+    display: block;
+    border-radius: 6px;
+  }
+
+  .art-picker-footer {
+    display: flex;
+    justify-content: center;
+    margin-top: .5rem;
+  }
 </style>

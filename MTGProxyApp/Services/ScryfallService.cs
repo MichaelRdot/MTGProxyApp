@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using MTGProxyApp.Dtos;
+﻿using MTGProxyApp.Dtos;
 
 namespace MTGProxyApp.Services;
 
@@ -15,9 +14,6 @@ public class ScryfallService
         // Keep this — we’ll use it to combine relative paths below.
         _client.BaseAddress = new Uri("https://api.scryfall.com/cards/");
     }
-
-    // Small return type for prints pages
-    public record PrintsPage(List<CardDto> Data, string? NextPage);
 
     public async Task<CardDto?> GetCardBySetAndCollectorAsync(string set, string collector)
     {
@@ -42,7 +38,10 @@ public class ScryfallService
         // Scryfall’s prints_search_uri is absolute already — just pass it through.
         var page = await _httpService.GetResponse<ScryfallListDto<CardDto>>(uri);
         var data = page?.Data ?? new List<CardDto>();
-        var next = (page?.HasMore ?? false) ? page?.NextPage : null;
+        var next = page?.HasMore ?? false ? page?.NextPage : null;
         return new PrintsPage(data, next);
     }
+
+    // Small return type for prints pages
+    public record PrintsPage(List<CardDto> Data, string? NextPage);
 }

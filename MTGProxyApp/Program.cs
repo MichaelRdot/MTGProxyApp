@@ -1,11 +1,11 @@
 using MTGProxyApp.Components;
 using MTGProxyApp.Services;
-
-using QuestPDF.Infrastructure; 
+using QuestPDF;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-QuestPDF.Settings.License = LicenseType.Community;
+Settings.License = LicenseType.Community;
 builder.Services
     .AddRazorComponents()
     .AddInteractiveServerComponents();
