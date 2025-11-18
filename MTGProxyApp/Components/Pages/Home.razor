@@ -673,24 +673,22 @@
     justify-content: space-between;
   }
 
+  .art-picker {
+    width: min(1200px, 96vw);     /* was min(900px, 92vw) */
+  }
+
+  /* keep 5 columns, but don't let them get too skinny */
   .art-picker-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: .5rem;
+    grid-template-columns: repeat(5, minmax(180px, 1fr));  /* bigger min */
+    gap: .75rem;                                           /* can tweak to taste */
   }
 
-  .art-option {
-    padding: 0;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-  }
-
+  /* already scales to fill its cell */
   .art-option img {
     width: 100%;
     aspect-ratio: 63 / 88;
     object-fit: cover;
-    display: block;
     border-radius: 6px;
   }
 
