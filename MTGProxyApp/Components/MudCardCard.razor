@@ -1,7 +1,9 @@
-﻿<MudItem xs="12" sm="6" md="4" lg="3" xl="2" xxl="1">
+﻿@using MTGProxyApp.Dtos
+
+<MudItem xs="12" sm="6" md="4" lg="3" xl="2" xxl="1">
     <MudCard Outlined="true">
         <MudCardContent>
-            <MudButton>
+            <MudButton @onclick="">
                 <MudImage Src="https://cards.scryfall.io/png/front/e/d/ed0bdf8f-9086-4e30-8865-bb1eb55516f8.png?1561758383" Fluid/>
             </MudButton>
         </MudCardContent>
@@ -9,5 +11,5 @@
 </MudItem>
 
 @code{
-
+    [Parameter] public CardDto Card { get; set; }
 }
