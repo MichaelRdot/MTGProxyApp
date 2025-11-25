@@ -1,0 +1,28 @@
+﻿@page "/"
+
+<MudContainer>
+    <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@_label" HelperText="@_helperText" Placeholder="@_placeholderText" AutoGrow />
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="">Load</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="">Download</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_icon" OnClick="">Black Corners</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_icon" OnClick="">Cut Lines</MudButton>
+    
+    <MudDivider />
+    <MudGrid Spacing="4" Justify="Justify.FlexStart">
+        @for (int i = 0; i < _cardNumber; i++)
+        {
+            <MudCardCard/>
+        }
+    </MudGrid>
+</MudContainer>
+
+@code{
+    string _deckTextField = "";
+    readonly string _label = "Deck Text";
+    readonly string _helperText = "This is where you put your deck :)";
+    readonly string _placeholderText = "1 Sol ring (C21) 263\n5 sol ring\nsol ring (C21)";
+
+    int _cardNumber = 9;
+
+    string _icon = Icons.Material.Filled.CheckBoxOutlineBlank;
+}

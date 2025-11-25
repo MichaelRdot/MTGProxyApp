@@ -1,0 +1,19 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider IsDarkMode/>
+<MudPopoverProvider/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+<MudLayout>
+    <MudMainContent>
+        <MudPaper Class="pa-4" Elevation="0">
+            @Body
+        </MudPaper>
+    </MudMainContent>
+</MudLayout>
+
+@code
+{
+    private readonly MudTheme _darkMode = new();
+}
