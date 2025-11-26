@@ -8,10 +8,8 @@ public record DeckLineModel(int Count, string Name, string? SetCode, string? Col
     {
         result = null;
         if (string.IsNullOrWhiteSpace(line)) return false;
-
-        // Pattern A: "1 Name (SET) 123"
-        var withSet = Regex.Match(line.Trim(),
-            @"^(?<count>\d+)\s+(?<name>.+?)\s+\((?<set>[A-Za-z0-9]{2,5})\)\s+(?<num>[A-Za-z0-9]+)$");
+        
+        var withSet = Regex.Match(line.Trim(), @"^(?<count>\d*)\s+(?<name>.*?)\s+\((?<set>[A-Za-z0-9]{3})\)?\s+(?<num>[A-Za-z0-9]*)$");
 
         if (withSet.Success)
         {
@@ -22,21 +20,6 @@ public record DeckLineModel(int Count, string Name, string? SetCode, string? Col
                 withSet.Groups["num"].Value.Trim());
             return true;
         }
-
-        // Pattern B: "1 Name"
-        var simple = Regex.Match(line.Trim(),
-            @"^(?<count>\d+)\s+(?<name>.+)$");
-
-        if (simple.Success)
-        {
-            result = new DeckLineModel(
-                int.Parse(simple.Groups["count"].Value),
-                simple.Groups["name"].Value.Trim(),
-                null,
-                null);
-            return true;
-        }
-
         return false;
     }
 }

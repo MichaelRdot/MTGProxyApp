@@ -1,28 +1,79 @@
 ﻿@page "/"
 
-<MudContainer>
+@using System.Text
+@using System.Text.RegularExpressions
+@using MTGProxyApp.Dtos
+@using MTGProxyApp.Models;
+@using MTGProxyApp.Services
+@rendermode InteractiveServer
+
+@inject ScryfallService ScryfallService
+
+<MudPaper>
     <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@_label" HelperText="@_helperText" Placeholder="@_placeholderText" AutoGrow />
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="">Load</MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="">Download</MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_icon" OnClick="">Black Corners</MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_icon" OnClick="">Cut Lines</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Load">Load</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Download">Download</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_icon" OnClick="@BlackCornersToggle">Black Corners</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_icon" OnClick="@CutLinesToggle">Cut Lines</MudButton>
     
     <MudDivider />
     <MudGrid Spacing="4" Justify="Justify.FlexStart">
-        @for (int i = 0; i < _cardNumber; i++)
+        @for (int i = 0; i < _cardsLines.Count; i++)
         {
             <MudCardCard/>
         }
     </MudGrid>
-</MudContainer>
+</MudPaper>
 
 @code{
-    string _deckTextField = "";
+    string _deckTextField = ""; 
     readonly string _label = "Deck Text";
     readonly string _helperText = "This is where you put your deck :)";
-    readonly string _placeholderText = "1 Sol ring (C21) 263\n5 sol ring\nsol ring (C21)";
-
-    int _cardNumber = 9;
+    readonly string _placeholderText = "1 Sol ring (C21) 263\n5 sol ring\nsol ring (C21)\nsol ring";
 
     string _icon = Icons.Material.Filled.CheckBoxOutlineBlank;
+    
+    List<string> _currentCardList = new();
+    List<DeckLineModel>? _cardsLines = new();
+    List<CardDto> _cards = new();
+    
+    async Task Load()
+    {
+        foreach (var cardLine in Regex.Split(_deckTextField, "\n"))
+        {
+            DeckLineModel.TryParse(cardLine, out var cardModel);
+            _cardsLines.Add(cardModel);
+            _currentCardList.Add(cardLine);
+            StringBuilder queryStringBuilder = new StringBuilder();
+            queryStringBuilder.Append(cardModel.Name);
+            if (cardModel.SetCode != null) queryStringBuilder.Append($"set:{cardModel.SetCode}");
+            if (cardModel.CollectorNumber != null) queryStringBuilder.Append($"cn:{cardModel.CollectorNumber}");
+            var cardList = await ScryfallService.GetCardsBySearchQuery(queryStringBuilder.ToString());
+            if (cardList == null) throw new Exception("Cards not found");
+            if (cardList[0] != null) _cards.Add(cardList[0]);
+            UpdateDeckList(_currentCardList.IndexOf(cardLine), cardLine, cardModel.Count, cardList[0]);
+        }
+    }
+
+    void UpdateDeckList(int currentCardPosition, string currentCardLine, int cardCount, CardDto card) 
+    {
+        var newCardLine = $"{cardCount} {card.Name} ({card.SetId}) {card.CollectorNumber}";
+        _deckTextField = _deckTextField.Replace(currentCardLine, newCardLine);
+        _currentCardList[currentCardPosition] = newCardLine;
+    }
+
+    void Download()
+    {
+        
+    }
+
+    void BlackCornersToggle()
+    {
+        
+    }
+
+    void CutLinesToggle()
+    {
+        
+    }
 }

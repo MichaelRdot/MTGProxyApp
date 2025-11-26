@@ -9,6 +9,7 @@ public class CardDto
     [JsonPropertyName("collector_number")] public string? CollectorNumber { get; set; }
     [JsonPropertyName("highres_image")] public bool HighresImage { get; set; }
     [JsonPropertyName("image_uris")] public CardPngDto? ImageUris { get; set; }
+    [JsonPropertyName("name")] public string Name { get; set; }
     
     public class CardPngDto
     {

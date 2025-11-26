@@ -1,5 +1,6 @@
 using MTGProxyApp;
 using MudBlazor.Services;
+using MTGProxyApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddMudServices();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<HttpService>();
+builder.Services.AddScoped<ScryfallService>();
 
 
 var app = builder.Build();
@@ -19,7 +23,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 
 app.UseAntiforgery();
