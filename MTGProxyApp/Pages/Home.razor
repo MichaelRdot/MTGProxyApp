@@ -7,26 +7,23 @@
 @rendermode InteractiveServer
 
 @inject ScryfallService ScryfallService
+@inject ISnackbar Snackbar
 
-<MudPaper>
+<MudContainer>
     <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@_label"
-                  HelperText="@_helperText" Placeholder="@_placeholderText" AutoGrow/>
+                  HelperText="@_helperText" Placeholder="@_placeholderText"/>
     <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Load">Load</MudButton>
     <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Download">Download</MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_icon" OnClick="@BlackCornersToggle">Black
-        Corners
-    </MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_icon" OnClick="@CutLinesToggle">Cut Lines
-    </MudButton>
-
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_icon" OnClick="@BlackCornersToggle">BlackCorners</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_icon" OnClick="@CutLinesToggle">Cut Lines</MudButton>
     <MudDivider/>
-    <MudGrid Spacing="4" Justify="Justify.FlexStart">
-        @for (var i = 0; i < _cardsLines.Count; i++)
-        {
-            <MudCardCard/>
-        }
-    </MudGrid>
-</MudPaper>
+</MudContainer>
+<MudGrid Spacing="4" Justify="Justify.FlexStart">
+    @foreach(var card in _cards)
+    {
+        <MudCardCard Card="card"/>
+    }
+</MudGrid>
 
 @code{
     string _deckTextField = "";
@@ -38,31 +35,45 @@
 
     readonly List<string> _currentCardList = new();
     readonly List<DeckLineModel>? _cardsLines = new();
-    readonly List<CardDto> _cards = new();
+    readonly List<CardDto?> _cards = new();
 
     async Task Load()
     {
+        _cards.Clear();
+        _cardsLines?.Clear();
+        _currentCardList.Clear();
         foreach (var cardLine in Regex.Split(_deckTextField, "\n"))
         {
-            DeckLineModel.TryParse(cardLine, out var cardModel);
-            _cardsLines.Add(cardModel);
-            _currentCardList.Add(cardLine);
-            var queryStringBuilder = new StringBuilder();
-            queryStringBuilder.Append(cardModel.Name);
-            if (cardModel.SetCode != null) queryStringBuilder.Append($"set:{cardModel.SetCode}");
-            if (cardModel.CollectorNumber != null) queryStringBuilder.Append($"cn:{cardModel.CollectorNumber}");
-            var cardList = await ScryfallService.GetCardsBySearchQuery(queryStringBuilder.ToString());
-            if (cardList == null) throw new Exception("Cards not found");
-            if (cardList.Data[0] != null) _cards.Add(cardList.Data[0]);
-            UpdateDeckList(_currentCardList.IndexOf(cardLine), cardLine, cardModel.Count, cardList.Data[0]);
+            if (!DeckLineModel.TryParse(cardLine, out var cardModel)) { Snackbar.Add($"Had an issue parsing line: {cardLine}", Severity.Error); }
+            else
+            {
+                _cardsLines.Add(cardModel);
+                _currentCardList.Add(cardLine);
+                var queryStringBuilder = new StringBuilder();
+                queryStringBuilder.Append($"!\"{cardModel.Name}\"");
+                if (cardModel.SetCode != null) queryStringBuilder.Append($" set:{cardModel.SetCode}");
+                if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:{cardModel.CollectorNumber}");
+                try
+                {
+                    var cardList = await ScryfallService.GetCardsBySearchQuery(queryStringBuilder.ToString());
+                    if (cardList?.Data[0] == null) throw new Exception("Cards not found");
+                    _cards.Add(cardList.Data[0]);
+                    UpdateDeckList(_currentCardList.IndexOf(cardLine), cardLine, cardModel.Count, cardList.Data[0]);
+                    Snackbar.Add($"Successfully added card: {cardModel.Name}", Severity.Success);
+                }
+                catch (Exception e)
+                {
+                    Snackbar.Add($"{e.Message} for line: {cardLine}", Severity.Error);
+                }
+            }
         }
     }
 
     void UpdateDeckList(int currentCardPosition, string currentCardLine, int cardCount, CardDto card)
     {
-        var newCardLine = $"{cardCount} {card.Name} ({card.SetId}) {card.CollectorNumber}";
+        var newCardLine = $"{cardCount} {card.Name} ({card.Set}) {card.CollectorNumber}";
         _deckTextField = _deckTextField.Replace(currentCardLine, newCardLine);
-        _currentCardList[currentCardPosition] = newCardLine;
+        if (currentCardPosition >= 0 && currentCardPosition < _currentCardList.Count) _currentCardList[currentCardPosition] = newCardLine;
     }
 
     void Download()

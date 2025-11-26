@@ -4,7 +4,7 @@ namespace MTGProxyApp.Dtos;
 
 public class CardDto
 {
-    [JsonPropertyName("set_id")] public required string SetId { get; set; }
+    [JsonPropertyName("set")] public required string Set { get; set; }
 
     [JsonPropertyName("prints_search_uri")]
     public required Uri PrintsSearchUri { get; set; }

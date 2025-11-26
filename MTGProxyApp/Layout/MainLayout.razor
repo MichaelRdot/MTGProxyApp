@@ -1,13 +1,12 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider IsDarkMode/>
-<MudPopoverProvider/>
-<MudDialogProvider/>
-<MudSnackbarProvider/>
-
 <MudLayout>
-    <MudMainContent>
-        <MudPaper Class="pa-4" Elevation="0">
+    <MudThemeProvider IsDarkMode/>
+    <MudPopoverProvider/>
+    <MudDialogProvider/>
+    <MudSnackbarProvider/>
+    <MudMainContent Style="padding-top: 0;">
+        <MudPaper Class="ma-2" Outlined="true" Height="98vh" Elevation="0">
             @Body
         </MudPaper>
     </MudMainContent>
