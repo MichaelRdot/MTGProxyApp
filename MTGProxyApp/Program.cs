@@ -1,6 +1,6 @@
 using MTGProxyApp;
-using MudBlazor.Services;
 using MTGProxyApp.Services;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

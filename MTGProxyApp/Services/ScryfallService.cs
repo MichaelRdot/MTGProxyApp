@@ -13,11 +13,13 @@ public class ScryfallService
         _httpService = httpService;
         _client.BaseAddress = new Uri("https://api.scryfall.com/cards/");
     }
-    public async Task<List<CardDto?>?> GetCardsBySearchQuery(string searchQuery)
+
+    public async Task<PaginatedListDto<CardDto?>?> GetCardsBySearchQuery(string searchQuery)
     {
         searchQuery = searchQuery.Replace($"{(char)92}{(char)34}", $"{(char)34}");
         searchQuery = searchQuery.Replace(" ", "+");
-        var cardList = await _httpService.GetResponse<List<CardDto?>>(new Uri($"{_client.BaseAddress}search?q={searchQuery}"));
+        var uri = new Uri($"{_client.BaseAddress}search?q={searchQuery}");
+        var cardList = await _httpService.GetResponse<PaginatedListDto<CardDto?>>(uri);
         return cardList ?? throw new Exception("Could not get anything from scryfall");
     }
 }
