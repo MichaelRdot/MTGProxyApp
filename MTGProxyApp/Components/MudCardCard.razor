@@ -1,15 +1,50 @@
 ﻿@using MTGProxyApp.Dtos
 
+@inject IDialogService DialogService
+
 <MudItem xs="12" sm="6" md="4" lg="3" xl="2" xxl="1">
     <MudCard Outlined="true">
         <MudCardContent>
-            <MudButton>
-                <MudImage Src="@Card.ImageUris.Png.ToString()" Fluid/>
+            <MudButton @onclick="OpenArtPickerAsync">
+                <MudImage Src="@_cardImage" Fluid/>
             </MudButton>
         </MudCardContent>
     </MudCard>
 </MudItem>
 
+<style>
+    .my-custom-class {
+        backdrop-filter: blur(10px);
+    }
+</style>
+
+
 @code{
     [Parameter] public required CardDto Card { get; set; }
+    [Parameter] public EventCallback<CardDto> UpdatedCard { get; set; }
+    [Parameter] public EventCallback<int> UpdateCardPosition { get; set; }
+
+    private string? _cardImage = "";
+    private bool _mdfc;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Card.CardFaces?[0].ImageUris != null) _mdfc = true;
+        _cardImage = _mdfc ? Card.CardFaces?[0].ImageUris?.Png?.ToString() : Card.ImageUris?.Png?.ToString();
+    }
+
+    private async Task OpenArtPickerAsync()
+    {
+        DialogParameters cardDialogParameters = new DialogParameters { ["Card"] = Card };
+        DialogOptions cardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, BackdropClick = true, BackgroundClass = ".my-custom-class"};
+        var dialog = await DialogService.ShowAsync<MudCardDialog>( $"{Card.Name}", cardDialogParameters, cardDialogOptions);
+        var result = await dialog.Result;
+        if (result.Canceled) return;
+        var tempCard = Card;
+        Card = (CardDto)result.Data;
+        Card.Count = tempCard.Count;
+        Card.LineIndex = tempCard.LineIndex;
+        _cardImage = _mdfc ? Card.CardFaces?[0].ImageUris?.Png?.ToString() : Card.ImageUris?.Png?.ToString();
+        if (UpdatedCard.HasDelegate) await UpdatedCard.InvokeAsync(Card);
+    }
 }
