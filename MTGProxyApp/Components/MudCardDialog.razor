@@ -3,40 +3,39 @@
 @inject IDialogService DialogService
 @inject HttpService HttpService
 
-@if (!_loading)
-{
-    <MudDialog>
-        <DialogContent>
-            <MudText>Select your chosen card art.</MudText>
-            <MudGrid Spacing="4" Justify="Justify.FlexStart">
-                @foreach (var card in _cardList)
-                {
-                    <MudItem xs="12" sm="6" md="4" lg="3" xl="2" xxl="1">
-                        <MudCard Outlined="true">
-                            <MudCardContent>
-                                <MudButton @onclick="@(() => SelectArt(card))">
-                                    <MudImage Src="@GetImageUrl(card)" Fluid/>
-                                </MudButton>
-                            </MudCardContent>
-                        </MudCard>
-                    </MudItem>
-                }
-            </MudGrid>
-        </DialogContent>
-        <DialogActions>
-            <MudButton OnClick="Close">Close</MudButton>
-        </DialogActions>
-    </MudDialog>
-}
+
+<MudDialog>
+    <DialogContent>
+        <MudText>Select your chosen card art.</MudText>
+        <MudGrid Spacing="4" Justify="Justify.FlexStart">
+            @foreach (var card in _cardList)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3" xl="2" xxl="1">
+                    <MudCard Outlined="true">
+                        <MudCardContent>
+                            <MudButton @onclick="@(() => SelectArt(card))">
+                                <MudImage Src="@GetImageUrl(card)" Fluid/>
+                            </MudButton>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        @if (_paginatedCardList.NextPage != null) { <MudIconButton OnClick="NextPage" Icon="@Icons.Material.Filled.KeyboardArrowRight"/> }
+        <MudButton OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
 
 @code {
-    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; } = default!;
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
     [Parameter] public required CardDto Card { get; set; }
     
     private List<CardDto> _cardList = new();
-    private PaginatedListDto<CardDto>? _paginatedCardList;
-    private bool _loading = true;
-
+    private PaginatedListDto<CardDto> _paginatedCardList;
+    private List<PaginatedListDto<CardDto>> _paginatedCardListList;
+    
     private void Close() => MudDialog.Cancel();
 
     private void SelectArt(CardDto card) => MudDialog.Close(DialogResult.Ok(card));
@@ -47,8 +46,12 @@
     {
         _paginatedCardList = await HttpService.GetResponse<PaginatedListDto<CardDto>>(Card.PrintsSearchUri);
         _cardList = _paginatedCardList.Data;
-        
         await base.OnInitializedAsync();
-        _loading = false;
+    }
+
+    async Task NextPage()
+    {
+        _paginatedCardList = await HttpService.GetResponse<PaginatedListDto<CardDto>>(_paginatedCardList.NextPage);
+        _cardList.AddRange(_paginatedCardList.Data); 
     }
 }
