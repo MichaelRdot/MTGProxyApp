@@ -1,0 +1,216 @@
+﻿@page "/"
+@using System.Text
+@using MTGProxyApp.Dtos
+@using MTGProxyApp.Models
+@using MTGProxyApp.Services
+@rendermode InteractiveServer
+
+@inject ScryfallService ScryfallService
+@inject QuestPdfService QuestPdfService
+@inject HttpService HttpService
+@inject ISnackbar Snackbar
+@inject IJSRuntime Js
+
+<MudContainer>
+    <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@_deckTextFieldLabel"
+                  HelperText="@_deckTextFieldHelperText" Placeholder="@_deckTextFieldPlaceholderText"
+                  HelperTextOnFocus/>
+    <MudTextField @bind-Value="_deckName" Variant="Variant.Outlined" Lines="1" Label="@_deckNameLabel"
+                  HelperText="@_deckNameHelperText" Placeholder="@_deckNamePlaceholderText" HelperTextOnFocus/>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Load">Load</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Download">Download</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_blackCornersToggleIcon"
+               OnClick="@BlackCornersToggle">BlackCorners
+    </MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_bordersToggleIcon" OnClick="@BordersToggle">
+        Borders
+    </MudButton>
+    <MudDivider/>
+</MudContainer>
+<MudGrid Spacing="4" Justify="Justify.FlexStart">
+    @foreach (var card in _cards)
+    {
+        <MudCardCard Card="@card" UpdatedCard="OnCardUpdated" @key="card"/>
+    }
+</MudGrid>
+<MudOverlay Visible="@(_creatingDocument || _loadingCards)" DarkBackground Absolute Class="blur-overlay">
+    <MudPaper Class="pa-6 d-flex flex-column align-center justify-center">
+        @if (_creatingDocument)
+        {
+            <MudText Typo="Typo.h6" Class="mb-2">Creating PDF…</MudText>
+            <MudProgressCircular Color="Color.Primary" Indeterminate Size="Size.Large" />
+        }
+        else if (_loadingCards)
+        {
+            <MudText Typo="Typo.h6" Class="mb-2">Loading cards… @_loadingValue.ToString("0")%</MudText>
+            <MudProgressCircular Color="Color.Primary" Value="@_loadingValue" Max="100" Size="Size.Large">
+                <ChildContent>
+                    <MudText Typo="Typo.subtitle2">@_loadingValue.ToString("0")%</MudText>
+                </ChildContent>
+            </MudProgressCircular>
+        }
+    </MudPaper>
+</MudOverlay>
+
+<style>
+    .blur-overlay {
+    backdrop-filter: blur(6px);
+    background-color: rgba(0, 0, 0, 0.2);
+    }
+</style>
+
+@code{
+    string _deckTextField = "";
+    string _deckName = "";
+    readonly string _deckTextFieldLabel = "Deck Text";
+    readonly string _deckTextFieldHelperText = "This is where you put your deck :)";
+    readonly string _deckTextFieldPlaceholderText = "1 Sol ring (C21) 263\n5 sol ring\nsol ring (C21)\nsol ring";
+    readonly string _deckNameLabel = "Deck Name";
+    readonly string _deckNameHelperText = "This is where you put the name of your deck :)";
+    readonly string _deckNamePlaceholderText = "A Really Cool, Really Awesome Deck Name";
+
+    string _blackCornersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
+    string _bordersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
+
+    bool _loadingCards;
+    int _maxCards;
+    float _loadingValue;
+    List<string> _currentCardList = new();
+    List<CardDto?> _cards = new();
+
+    bool _blackCornersToggle;
+    bool _bordersToggle;
+    List<byte[]> _cardPrintList = new();
+
+    bool _creatingDocument;
+
+    void OnCardUpdated(CardDto card)
+    {
+        var index = _cards.IndexOf(card);
+        var newLine = UpdateDeckList(card);
+        _currentCardList = _deckTextField
+            .Split("\n", StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
+        if (card.Count == 0)
+        {
+            _currentCardList.RemoveAt(index);
+            _cards.Remove(card);
+            for (var i = index; i < _cards.Count; i++)
+                if (_cards[i] is not null)
+                    _cards[i]!.LineIndex = i;
+        }
+        else
+        {
+            card.LineIndex = index;
+            _currentCardList[card.LineIndex] = newLine;
+        }
+
+        var tempDeckText = new StringBuilder();
+        foreach (var cardLine in _currentCardList) tempDeckText.Append(cardLine + "\n");
+        _deckTextField = tempDeckText.ToString();
+    }
+
+    async Task Load()
+    {
+        var tempDeckText = new StringBuilder();
+        _cards = new();
+        _currentCardList = _deckTextField
+            .Split("\n", StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
+        _loadingCards = true;
+        StateHasChanged();
+        foreach (var cardLine in _currentCardList)
+        {
+            if (!DeckLineModel.TryParse(cardLine, out var cardModel))
+            {
+                Snackbar.Add($"Had an issue parsing line: {cardLine}", Severity.Error);
+            }
+            else
+            {
+                var queryStringBuilder = new StringBuilder();
+
+                queryStringBuilder.Append($"!\"{cardModel.Name}\"");
+                if (cardModel.SetCode != null) queryStringBuilder.Append($" set:{cardModel.SetCode}");
+                if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:{cardModel.CollectorNumber}");
+
+                try
+                {
+                    var cardList = await ScryfallService.GetCardsBySearchQuery(queryStringBuilder.ToString());
+                    if (cardList?.Data[0] == null) throw new Exception("Cards not found");
+                    var card = cardList.Data[0];
+
+                    card.Count = cardModel.Count;
+                    card.LineIndex = _currentCardList.IndexOf(cardLine);
+                    if (card.CardFaces?[0].ImageUris?.Png != null)
+                    {
+                        card.PreLoadedCardImageBack = await HttpService.LoadCardImage(card.CardFaces[1].ImageUris.Png.ToString());
+                        card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.CardFaces[0].ImageUris.Png.ToString());
+                    }
+                    else card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
+
+                    _cards.Add(cardList.Data[0]);
+                    tempDeckText.Append(UpdateDeckList(card) + "\n");
+                    _loadingValue = 100f * _cards.Count / _currentCardList.Count;
+                    StateHasChanged();
+                    Snackbar.Add($"Successfully added card: {cardModel.Name}", Severity.Success);
+                }
+                catch (Exception e)
+                {
+                    Snackbar.Add($"{e.Message} for line: {cardLine}", Severity.Error);
+                }
+            }
+        }
+        _deckTextField = tempDeckText.ToString();
+        _loadingCards = false;
+        _loadingValue = 0;
+    }
+
+    string UpdateDeckList(CardDto card) => $"{card.Count} {card.Name} ({card.Set.ToUpperInvariant()}) {card.CollectorNumber}";
+
+    async Task Download()
+    {
+        _creatingDocument = true;
+        StateHasChanged();
+        try
+        {
+            _cardPrintList = new();
+            if (_deckName.Equals("")) _deckName = "deck";
+            foreach (var card in _cards)
+            {
+                for (var i = 0; i < card.Count; i++)
+                {
+                    if (card.PreLoadedCardImageBack != null) _cardPrintList.Add(card.PreLoadedCardImageBack);
+                    _cardPrintList.Add(card.PreLoadedCardImageFront);
+                }
+            }
+            var pdfBytes = await QuestPdfService.CreatePdf(_cardPrintList, _blackCornersToggle, _bordersToggle);
+            using var stream = new MemoryStream(pdfBytes);
+            using var streamRef = new DotNetStreamReference(stream);
+            await Js.InvokeVoidAsync("downloadFileFromStream", $"{_deckName}", streamRef);
+            Snackbar.Add("Yippie!! I did it!! :)", Severity.Success);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add("Your deck is probably too big, please try to cut it into smaller pieces :(", Severity.Error);
+        }
+        finally
+        { 
+            _creatingDocument = false;
+            StateHasChanged();
+        }
+        
+    }
+
+    void BlackCornersToggle()
+    {
+        _blackCornersToggle = !_blackCornersToggle;
+        _blackCornersToggleIcon = _blackCornersToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
+    }
+
+    void BordersToggle()
+    {
+        _bordersToggle = !_bordersToggle;
+        _bordersToggleIcon = _bordersToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
+
+    }
+}

@@ -1,0 +1,82 @@
+﻿@using MTGProxyApp.Dtos
+@using MTGProxyApp.Services
+@inject IDialogService DialogService
+@inject HttpService HttpService
+
+<MudItem xs="12" sm="6" md="4" lg="3" xl="2" xxl="1">
+    <MudCard Outlined="true">
+        <MudCardContent>
+            <MudButton @onclick="OpenArtPickerAsync">
+                <MudImage Src="@_cardImage" Fluid/>
+            </MudButton>
+            <MudText Inline Align="Align.Left">(@Card.Set.ToUpperInvariant()) @Card.CollectorNumber</MudText>
+            <MudText Inline Align="Align.Center">@Card.Count</MudText>
+            <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposurePlus1" @onclick="Add"/>
+            <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposureNeg1" @onclick="Subtract"/>
+        </MudCardContent>
+    </MudCard>
+</MudItem>
+
+<style>
+    .my-custom-class {
+        backdrop-filter: blur(10px);
+    }
+</style>
+
+
+@code{
+    [Parameter] public required CardDto Card { get; set; }
+    [Parameter] public EventCallback<CardDto> UpdatedCard { get; set; }
+    [Parameter] public EventCallback<int> UpdateCardPosition { get; set; }
+
+    private string? _cardImage = "";
+    private bool _mdfc;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Card.CardFaces?[0].ImageUris != null) _mdfc = true;
+        _cardImage = _mdfc ? Card.CardFaces?[0].ImageUris?.Png?.ToString() : Card.ImageUris?.Png?.ToString();
+    }
+
+    private async Task OpenArtPickerAsync()
+    {
+        var cardDialogParameters = new DialogParameters { ["Card"] = Card };
+        DialogOptions cardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, BackdropClick = true, BackgroundClass = ".my-custom-class" };
+        var dialog = await DialogService.ShowAsync<MudCardDialog>($"{Card.Name}", cardDialogParameters, cardDialogOptions);
+        var result = await dialog.Result;
+        if (result.Canceled) return;
+        if (result.Data is CardDto card)
+        {
+            Card.Set = card.Set;
+            Card.PrintsSearchUri = card.PrintsSearchUri;
+            Card.CollectorNumber = card.CollectorNumber;
+            Card.HighresImage = card.HighresImage;
+            Card.ImageUris = card.ImageUris;
+            Card.CardFaces = card.CardFaces;
+
+            _mdfc = Card.CardFaces?[0].ImageUris != null;
+            if (_mdfc)
+            {
+                Card.PreLoadedCardImageBack = await HttpService.LoadCardImage(card.CardFaces[1].ImageUris.Png.ToString());
+                Card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.CardFaces[0].ImageUris.Png.ToString());
+            }
+            else Card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
+
+            _cardImage = _mdfc ? Card.CardFaces?[0].ImageUris?.Png?.ToString() : Card.ImageUris?.Png?.ToString();
+            if (UpdatedCard.HasDelegate) await UpdatedCard.InvokeAsync(Card);
+        }
+    }
+
+    async Task Add()
+    {
+        Card.Count++;
+        if (UpdatedCard.HasDelegate) await UpdatedCard.InvokeAsync(Card);
+    }
+
+    async Task Subtract()
+    {
+        Card.Count--;
+        if (UpdatedCard.HasDelegate) await UpdatedCard.InvokeAsync(Card);
+    }
+
+}
