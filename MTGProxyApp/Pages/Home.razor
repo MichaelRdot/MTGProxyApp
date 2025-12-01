@@ -9,6 +9,7 @@
 @inject QuestPdfService QuestPdfService
 @inject HttpService HttpService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 <MudContainer>
     <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@_deckTextFieldLabel"
@@ -32,6 +33,21 @@
         <MudCardCard Card="@card" UpdatedCard="OnCardUpdated" @key="card"/>
     }
 </MudGrid>
+@if (_creatingDocument)
+{
+    <MudProgressCircular Color="Color.Default" Indeterminate="true"/>
+}
+@if (_loadingCards)
+{
+    <MudProgressCircular Style="height: 80px; width: 80px" Color="Color.Primary" Value="@_loadingValue">
+        <ChildContent>
+            <MudStack Spacing="0" AlignItems="AlignItems.Center" Justify="Justify.Center">
+                <MudText Typo="Typo.subtitle2">Cards Loaded</MudText>
+                <MudText Typo="Typo.subtitle2">@_loadingValue</MudText>
+            </MudStack>
+        </ChildContent>
+    </MudProgressCircular>
+}
 
 @code{
     string _deckTextField = "";
@@ -46,12 +62,17 @@
     string _blackCornersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
     string _bordersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
 
+    bool _loadingCards;
+    int _maxCards;
+    float _loadingValue;
     List<string> _currentCardList = new();
-    readonly List<CardDto?> _cards = new();
+    List<CardDto?> _cards = new();
 
     bool _blackCornersToggle;
     bool _bordersToggle;
-    readonly List<byte[]> _cardPrintList = new();
+    List<byte[]> _cardPrintList = new();
+
+    bool _creatingDocument;
 
     void OnCardUpdated(CardDto card)
     {
@@ -82,10 +103,11 @@
     async Task Load()
     {
         var tempDeckText = new StringBuilder();
-        _cards.Clear();
+        _cards = new();
         _currentCardList = _deckTextField
             .Split("\n", StringSplitOptions.RemoveEmptyEntries)
             .ToList();
+        _loadingCards = true;
         foreach (var cardLine in _currentCardList)
         {
             if (!DeckLineModel.TryParse(cardLine, out var cardModel))
@@ -117,6 +139,7 @@
 
                     _cards.Add(cardList.Data[0]);
                     tempDeckText.Append(UpdateDeckList(card) + "\n");
+                    _loadingValue = 100 * (_cards.Count / _currentCardList.Count);
                     Snackbar.Add($"Successfully added card: {cardModel.Name}", Severity.Success);
                 }
                 catch (Exception e)
@@ -125,16 +148,20 @@
                 }
             }
         }
-
         _deckTextField = tempDeckText.ToString();
+        _loadingCards = false;
+        _loadingValue = 0;
     }
 
     string UpdateDeckList(CardDto card)
     {
         return $"{card.Count} {card.Name} ({card.Set.ToUpperInvariant()}) {card.CollectorNumber}";    }
 
-    void Download()
+    async Task Download()
     {
+        _creatingDocument = true;
+        _cardPrintList = new();
+        if (_deckName.Equals("")) _deckName = "deck";
         foreach (var card in _cards)
         {
             for (var i = 0; i < card.Count; i++)
@@ -143,7 +170,15 @@
                 _cardPrintList.Add(card.PreLoadedCardImageFront);
             }
         }
-        QuestPdfService.CreatePdf(_cardPrintList, _blackCornersToggle, _bordersToggle, _deckName);
+        var pdfBytes = await QuestPdfService.CreatePdf(_cardPrintList, _blackCornersToggle, _bordersToggle);
+        using var stream = new MemoryStream(pdfBytes);
+        using var streamRef = new DotNetStreamReference(stream);
+        try
+        {
+            await JS.InvokeVoidAsync("downloadFileFromStream", $"{_deckName}", streamRef);
+            Snackbar.Add("Yippie!! I did it!! :)", Severity.Success);
+        }
+        catch (Exception e) { Snackbar.Add("Your deck is probably too big, please try to cut it into smaller pieces :(", Severity.Error); }
     }
 
     void BlackCornersToggle()

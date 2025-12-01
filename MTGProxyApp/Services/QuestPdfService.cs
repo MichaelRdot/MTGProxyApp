@@ -8,22 +8,23 @@ namespace MTGProxyApp.Services;
 
 public class QuestPdfService
 {
+    private List<byte[]> _cardsPrints;
     private bool _blackCorners = true;
     private bool _borders = true;
-    private readonly float _cardHeight = UnitExtensions.ToPoints(88f, Millimetre);
-
     private int _cardsDone;
-    private List<byte[]> _cardsPrints;
+    
+    private readonly float _cardHeight = UnitExtensions.ToPoints(88f, Millimetre);
     private readonly float _cardWidth = UnitExtensions.ToPoints(63f, Millimetre);
-    private readonly float _crosslength = 8f;
-    private readonly float _crossThickness = 1f;
+    private const float CrossLength = 8f;
+    private const float CrossThickness = 1f;
 
-    public void CreatePdf(List<byte[]> cardsPrints, bool blackCorners, bool borders, string pdfName = "deck")
+    public Task<byte[]> CreatePdf(List<byte[]> cardsPrints, bool blackCorners, bool borders, string pdfName = "deck")
     {
         _cardsPrints = cardsPrints;
         _blackCorners = blackCorners;
         _borders = borders;
-        Document.Create(doc =>
+        _cardsDone = 0;
+        var doc = Document.Create(doc =>
         {
             var paddingTop = (PageSizes.Letter.Height - _cardHeight * 3) / 2;
             while (_cardsDone != _cardsPrints.Count)
@@ -59,20 +60,21 @@ public class QuestPdfService
                                             .WithRasterDpi(300);
                                         if (!_blackCorners) return;
                                         layers.Layer().Element(e =>
-                                            e.AlignLeft().AlignTop().CornerCross(_crosslength, _crossThickness));
+                                            e.AlignLeft().AlignTop().CornerCross(CrossLength, CrossThickness));
                                         layers.Layer().Element(e =>
-                                            e.AlignRight().AlignTop().CornerCross(_crosslength, _crossThickness));
+                                            e.AlignRight().AlignTop().CornerCross(CrossLength, CrossThickness));
                                         layers.Layer().Element(e =>
-                                            e.AlignLeft().AlignBottom().CornerCross(_crosslength, _crossThickness));
+                                            e.AlignLeft().AlignBottom().CornerCross(CrossLength, CrossThickness));
                                         layers.Layer().Element(e =>
-                                            e.AlignRight().AlignBottom().CornerCross(_crosslength, _crossThickness));
+                                            e.AlignRight().AlignBottom().CornerCross(CrossLength, CrossThickness));
                                     });
                             });
                             _cardsDone++;
                         }
                     });
                 });
-        }).GeneratePdf(pdfName);
+        });
+        return Task.FromResult(doc.GeneratePdf());
     }
 
     private static class UnitExtensions
