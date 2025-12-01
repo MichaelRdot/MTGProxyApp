@@ -1,6 +1,5 @@
 ﻿@using MTGProxyApp.Dtos
 @using MTGProxyApp.Services
-
 @inject IDialogService DialogService
 @inject HttpService HttpService
 
@@ -10,7 +9,7 @@
             <MudButton @onclick="OpenArtPickerAsync">
                 <MudImage Src="@_cardImage" Fluid/>
             </MudButton>
-            <MudText Inline Align="Align.Left">(@Card.Set.ToUpperInvariant()) @Card.CollectorNumber</MudText> 
+            <MudText Inline Align="Align.Left">(@Card.Set.ToUpperInvariant()) @Card.CollectorNumber</MudText>
             <MudText Inline Align="Align.Center">@Card.Count</MudText>
             <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposurePlus1" @onclick="Add"/>
             <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposureNeg1" @onclick="Subtract"/>
@@ -41,9 +40,9 @@
 
     private async Task OpenArtPickerAsync()
     {
-        DialogParameters cardDialogParameters = new DialogParameters { ["Card"] = Card };
-        DialogOptions cardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, BackdropClick = true, BackgroundClass = ".my-custom-class"};
-        var dialog = await DialogService.ShowAsync<MudCardDialog>( $"{Card.Name}", cardDialogParameters, cardDialogOptions);
+        var cardDialogParameters = new DialogParameters { ["Card"] = Card };
+        DialogOptions cardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, BackdropClick = true, BackgroundClass = ".my-custom-class" };
+        var dialog = await DialogService.ShowAsync<MudCardDialog>($"{Card.Name}", cardDialogParameters, cardDialogOptions);
         var result = await dialog.Result;
         if (result.Canceled) return;
         if (result.Data is CardDto card)
@@ -54,7 +53,7 @@
             Card.HighresImage = card.HighresImage;
             Card.ImageUris = card.ImageUris;
             Card.CardFaces = card.CardFaces;
-            
+
             _mdfc = Card.CardFaces?[0].ImageUris != null;
             if (_mdfc)
             {
@@ -62,6 +61,7 @@
                 Card.PreLoadedCardImageBack = await HttpService.LoadCardImage(card.CardFaces[1].ImageUris.Png.ToString());
             }
             else Card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
+
             _cardImage = _mdfc ? Card.CardFaces?[0].ImageUris?.Png?.ToString() : Card.ImageUris?.Png?.ToString();
             if (UpdatedCard.HasDelegate) await UpdatedCard.InvokeAsync(Card);
         }
@@ -78,4 +78,5 @@
         Card.Count--;
         if (UpdatedCard.HasDelegate) await UpdatedCard.InvokeAsync(Card);
     }
+
 }

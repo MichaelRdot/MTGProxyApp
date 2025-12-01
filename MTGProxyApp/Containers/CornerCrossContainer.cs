@@ -2,7 +2,7 @@
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
-namespace QuestPDFPlayground;
+namespace MTGProxyApp.Containers;
 
 public static class CornerCrossContainer
 {

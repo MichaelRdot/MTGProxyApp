@@ -2,9 +2,10 @@ using MTGProxyApp;
 using MTGProxyApp.Services;
 using MudBlazor;
 using MudBlazor.Services;
+using QuestPDF;
 using QuestPDF.Infrastructure;
 
-QuestPDF.Settings.License = LicenseType.Community;
+Settings.License = LicenseType.Community;
 
 
 var builder = WebApplication.CreateBuilder(args);

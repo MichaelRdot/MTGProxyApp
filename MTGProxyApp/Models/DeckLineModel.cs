@@ -10,7 +10,7 @@ public record DeckLineModel(int Count, string Name, string? SetCode, string? Col
         if (string.IsNullOrWhiteSpace(line)) return false;
 
         var withSet = Regex.Match(line.Trim(),
-            @"^\s*(?:(?<count>\d+)\s+)?(?<name>.+?)(?:\s+\((?<set>[A-Za-z0-9]{3,5})\)(?:\s+(?<num>[A-Za-z0-9]+))?)?\s*$", 
+            @"^\s*(?:(?<count>\d+)\s+)?(?<name>.+?)(?:\s+\((?<set>[A-Za-z0-9]{3,5})\)(?:\s+(?<num>[A-Za-z0-9]+))?)?\s*$",
             RegexOptions.IgnorePatternWhitespace);
         if (!withSet.Success)
             return false;

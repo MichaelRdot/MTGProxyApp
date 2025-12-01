@@ -1,25 +1,24 @@
-﻿using static QuestPDF.Infrastructure.Unit;
+﻿using MTGProxyApp.Containers;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using MTGProxyApp.Dtos;
-using QuestPDFPlayground;
+using static QuestPDF.Infrastructure.Unit;
 
 namespace MTGProxyApp.Services;
 
-public class QuestPdfService()
+public class QuestPdfService
 {
-    List<Byte[]> _cardsPrints;
-    float _cardWidth = UnitExtensions.ToPoints(63f, Millimetre);
-    float _cardHeight = UnitExtensions.ToPoints(88f, Millimetre);
-    float _crossThickness = 1f;
-    float _crosslength = 8f;
-    bool _blackCorners = true;
-    bool _borders = true;
+    private bool _blackCorners = true;
+    private bool _borders = true;
+    private readonly float _cardHeight = UnitExtensions.ToPoints(88f, Millimetre);
 
-    int _cardsDone;
+    private int _cardsDone;
+    private List<byte[]> _cardsPrints;
+    private readonly float _cardWidth = UnitExtensions.ToPoints(63f, Millimetre);
+    private readonly float _crosslength = 8f;
+    private readonly float _crossThickness = 1f;
 
-    public void CreatePdf(List<Byte[]> cardsPrints, bool blackCorners, bool borders, string pdfName = "deck")
+    public void CreatePdf(List<byte[]> cardsPrints, bool blackCorners, bool borders, string pdfName = "deck")
     {
         _cardsPrints = cardsPrints;
         _blackCorners = blackCorners;
@@ -28,7 +27,6 @@ public class QuestPdfService()
         {
             var paddingTop = (PageSizes.Letter.Height - _cardHeight * 3) / 2;
             while (_cardsDone != _cardsPrints.Count)
-            {
                 doc.Page(page =>
                 {
                     page.Size(PageSizes.Letter);
@@ -44,7 +42,7 @@ public class QuestPdfService()
                             columns.ConstantColumn(_cardWidth);
                             columns.ConstantColumn(_cardWidth);
                         });
-                        for (int i = 0; i < 9 && _cardsDone < _cardsPrints.Count; i++)
+                        for (var i = 0; i < 9 && _cardsDone < _cardsPrints.Count; i++)
                         {
                             table.Cell().Element(card =>
                             {
@@ -74,7 +72,6 @@ public class QuestPdfService()
                         }
                     });
                 });
-            }
         }).GeneratePdf(pdfName);
     }
 

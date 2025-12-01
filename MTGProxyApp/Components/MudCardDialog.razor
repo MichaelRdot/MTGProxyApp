@@ -23,7 +23,10 @@
         </MudGrid>
     </DialogContent>
     <DialogActions>
-        @if (_paginatedCardList.NextPage != null) { <MudIconButton OnClick="NextPage" Icon="@Icons.Material.Filled.KeyboardArrowRight"/> }
+        @if (_paginatedCardList.NextPage != null)
+        {
+            <MudIconButton OnClick="NextPage" Icon="@Icons.Material.Filled.KeyboardArrowRight"/>
+        }
         <MudButton OnClick="Close">Close</MudButton>
     </DialogActions>
 </MudDialog>
@@ -31,16 +34,25 @@
 @code {
     [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
     [Parameter] public required CardDto Card { get; set; }
-    
+
     private List<CardDto> _cardList = new();
     private PaginatedListDto<CardDto> _paginatedCardList;
     private List<PaginatedListDto<CardDto>> _paginatedCardListList;
-    
-    private void Close() => MudDialog.Cancel();
 
-    private void SelectArt(CardDto card) => MudDialog.Close(DialogResult.Ok(card));
+    private void Close()
+    {
+        MudDialog.Cancel();
+    }
 
-    private string GetImageUrl(CardDto card) => card.ImageUris?.Png?.ToString() ?? card.CardFaces?.FirstOrDefault()?.ImageUris?.Png?.ToString() ?? "images/card-placeholder.png";
+    private void SelectArt(CardDto card)
+    {
+        MudDialog.Close(DialogResult.Ok(card));
+    }
+
+    private string GetImageUrl(CardDto card)
+    {
+        return card.ImageUris?.Png?.ToString() ?? card.CardFaces?.FirstOrDefault()?.ImageUris?.Png?.ToString() ?? "images/card-placeholder.png";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,6 +64,7 @@
     async Task NextPage()
     {
         _paginatedCardList = await HttpService.GetResponse<PaginatedListDto<CardDto>>(_paginatedCardList.NextPage);
-        _cardList.AddRange(_paginatedCardList.Data); 
+        _cardList.AddRange(_paginatedCardList.Data);
     }
+
 }
