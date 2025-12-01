@@ -7,6 +7,7 @@
 @rendermode InteractiveServer
 
 @inject ScryfallService ScryfallService
+@inject QuestPdfService QuestPdfService
 @inject ISnackbar Snackbar
 
 <MudContainer>
@@ -14,8 +15,8 @@
                   HelperText="@_helperText" Placeholder="@_placeholderText"/>
     <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Load">Load</MudButton>
     <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Download">Download</MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_icon" OnClick="@BlackCornersToggle">BlackCorners</MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_icon" OnClick="@CutLinesToggle">Cut Lines</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_blackCornersToggleIcon" OnClick="@BlackCornersToggle">BlackCorners</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_bordersToggleIcon" OnClick="@BordersToggle">Borders</MudButton>
     <MudDivider/>
 </MudContainer>
 <MudGrid Spacing="4" Justify="Justify.FlexStart">
@@ -31,10 +32,15 @@
     readonly string _helperText = "This is where you put your deck :)";
     readonly string _placeholderText = "1 Sol ring (C21) 263\n5 sol ring\nsol ring (C21)\nsol ring";
 
-    readonly string _icon = Icons.Material.Filled.CheckBoxOutlineBlank;
+    string _blackCornersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
+    string _bordersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
+
 
     List<string> _currentCardList = new();
     List<CardDto?> _cards = new();
+    
+    bool _blackCornersToggle = false;
+    bool _bordersToggle = false;
 
     void OnCardUpdated(CardDto card)
     {
@@ -100,14 +106,19 @@
 
     void Download()
     {
+        QuestPdfService.CreatePdf(_cards, _blackCornersToggle, _bordersToggle);
     }
 
     void BlackCornersToggle()
     {
+        _blackCornersToggle = !_blackCornersToggle;
+        _blackCornersToggleIcon = _blackCornersToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
     }
 
-    void CutLinesToggle()
+    void BordersToggle()
     {
+        _bordersToggle = !_bordersToggle;
+        _bordersToggleIcon = _bordersToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
+
     }
-    
 }
