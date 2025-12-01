@@ -6,6 +6,8 @@ public class CardDto
 {
     public int Count { get; set; }
     public int LineIndex { get; set; }
+    public Byte[] PreLoadedCardImageFront { get; set; }
+    public Byte[] PreLoadedCardImageBack { get; set; }
     [JsonPropertyName("set")] public required string Set { get; set; }
     [JsonPropertyName("prints_search_uri")] public required Uri PrintsSearchUri { get; set; }
     [JsonPropertyName("collector_number")] public string? CollectorNumber { get; set; }

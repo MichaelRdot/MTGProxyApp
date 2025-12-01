@@ -28,6 +28,7 @@ builder.Services.AddMudServices(config =>
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<HttpService>();
 builder.Services.AddScoped<ScryfallService>();
+builder.Services.AddScoped<QuestPdfService>();
 
 
 var app = builder.Build();

@@ -8,11 +8,14 @@
 
 @inject ScryfallService ScryfallService
 @inject QuestPdfService QuestPdfService
+@inject HttpService HttpService
 @inject ISnackbar Snackbar
 
 <MudContainer>
-    <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@_label"
-                  HelperText="@_helperText" Placeholder="@_placeholderText"/>
+    <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@_deckTextFieldLabel"
+                  HelperText="@_deckTextFieldHelperText" Placeholder="@_deckTextFieldPlaceholderText" HelperTextOnFocus/>
+    <MudTextField @bind-Value="_deckName" Variant="Variant.Outlined" Lines="1" Label="@_deckNameLabel"
+                  HelperText="@_deckNameHelperText" Placeholder="@_deckNamePlaceholderText" HelperTextOnFocus/>
     <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Load">Load</MudButton>
     <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Download">Download</MudButton>
     <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_blackCornersToggleIcon" OnClick="@BlackCornersToggle">BlackCorners</MudButton>
@@ -28,19 +31,23 @@
 
 @code{
     string _deckTextField = "";
-    readonly string _label = "Deck Text";
-    readonly string _helperText = "This is where you put your deck :)";
-    readonly string _placeholderText = "1 Sol ring (C21) 263\n5 sol ring\nsol ring (C21)\nsol ring";
+    string _deckName = "";
+    readonly string _deckTextFieldLabel = "Deck Text";
+    readonly string _deckTextFieldHelperText = "This is where you put your deck :)";
+    readonly string _deckTextFieldPlaceholderText = "1 Sol ring (C21) 263\n5 sol ring\nsol ring (C21)\nsol ring";
+    readonly string _deckNameLabel = "Deck Name";
+    readonly string _deckNameHelperText = "This is where you put the name of your deck :)";
+    readonly string _deckNamePlaceholderText = "A Really Cool, Really Awesome Deck Name";
 
     string _blackCornersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
     string _bordersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
 
-
     List<string> _currentCardList = new();
     List<CardDto?> _cards = new();
     
-    bool _blackCornersToggle = false;
-    bool _bordersToggle = false;
+    bool _blackCornersToggle;
+    bool _bordersToggle;
+    List<byte[]> _cardPrintList = new();
 
     void OnCardUpdated(CardDto card)
     {
@@ -91,6 +98,12 @@
 
                     card.Count = cardModel.Count;
                     card.LineIndex = _currentCardList.IndexOf(cardLine);
+                    if (card.CardFaces?[0].ImageUris?.Png != null)
+                    {
+                        card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.CardFaces[0].ImageUris.Png.ToString());
+                        card.PreLoadedCardImageBack = await HttpService.LoadCardImage(card.CardFaces[1].ImageUris.Png.ToString());
+                    }
+                    else card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
 
                     _cards.Add(cardList.Data[0]);
                     tempDeckText.Append(UpdateDeckList(card) + "\n");
@@ -106,7 +119,15 @@
 
     void Download()
     {
-        QuestPdfService.CreatePdf(_cards, _blackCornersToggle, _bordersToggle);
+        foreach (var card in _cards)
+        {
+            for (var i = 0; i < card.Count; i++)
+            {
+                if (card.PreLoadedCardImageBack != null) _cardPrintList.Add(card.PreLoadedCardImageBack);
+                _cardPrintList.Add(card.PreLoadedCardImageFront);
+            }
+        }
+        QuestPdfService.CreatePdf(_cardPrintList, _blackCornersToggle, _bordersToggle, _deckName);
     }
 
     void BlackCornersToggle()

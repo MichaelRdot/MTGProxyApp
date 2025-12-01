@@ -9,7 +9,7 @@ namespace MTGProxyApp.Services;
 
 public class QuestPdfService()
 {
-    List<CardDto> _cards;
+    List<Byte[]> _cardsPrints;
     float _cardWidth = UnitExtensions.ToPoints(63f, Millimetre);
     float _cardHeight = UnitExtensions.ToPoints(88f, Millimetre);
     float _crossThickness = 1f;
@@ -19,15 +19,15 @@ public class QuestPdfService()
 
     int _cardsDone;
 
-    public void CreatePdf(List<CardDto?> cards, bool blackCorners, bool borders)
+    public void CreatePdf(List<Byte[]> cardsPrints, bool blackCorners, bool borders, string pdfName = "deck")
     {
-        _cards = cards;
+        _cardsPrints = cardsPrints;
         _blackCorners = blackCorners;
         _borders = borders;
         Document.Create(doc =>
         {
             var paddingTop = (PageSizes.Letter.Height - _cardHeight * 3) / 2;
-            while (_cardsDone != _cards.Count)
+            while (_cardsDone != _cardsPrints.Count)
             {
                 doc.Page(page =>
                 {
@@ -44,12 +44,10 @@ public class QuestPdfService()
                             columns.ConstantColumn(_cardWidth);
                             columns.ConstantColumn(_cardWidth);
                         });
-                        for (int i = 0; i < 9 && _cardsDone < _cards.Count; i++)
+                        for (int i = 0; i < 9 && _cardsDone < _cardsPrints.Count; i++)
                         {
-                            var countOuter = i;
                             table.Cell().Element(card =>
                             {
-                                var countInner = countOuter;
                                 card
                                     .Height(_cardHeight)
                                     .Width(_cardWidth)
@@ -58,7 +56,7 @@ public class QuestPdfService()
                                         layers.PrimaryLayer()
                                             .Border(_borders ? 1 : 0, Colors.Black)
                                             .Background(_blackCorners ? Colors.Black : Colors.White)
-                                            .Image(_cards[_cardsDone].ImageUris.Png.ToString())
+                                            .Image(_cardsPrints[_cardsDone])
                                             .WithCompressionQuality(ImageCompressionQuality.Best)
                                             .WithRasterDpi(300);
                                         if (!_blackCorners) return;
@@ -77,10 +75,10 @@ public class QuestPdfService()
                     });
                 });
             }
-        }).GeneratePdf();
+        }).GeneratePdf(pdfName);
     }
 
-    internal static class UnitExtensions
+    private static class UnitExtensions
     {
         private const float InchToCentimetre = 2.54f;
         private const float InchToPoints = 72;

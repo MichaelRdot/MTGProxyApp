@@ -1,6 +1,8 @@
 ﻿@using MTGProxyApp.Dtos
+@using MTGProxyApp.Services
 
 @inject IDialogService DialogService
+@inject HttpService HttpService
 
 <MudItem xs="12" sm="6" md="4" lg="3" xl="2" xxl="1">
     <MudCard Outlined="true">
@@ -54,6 +56,12 @@
             Card.CardFaces = card.CardFaces;
             
             _mdfc = Card.CardFaces?[0].ImageUris != null;
+            if (_mdfc)
+            {
+                Card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.CardFaces[0].ImageUris.Png.ToString());
+                Card.PreLoadedCardImageBack = await HttpService.LoadCardImage(card.CardFaces[1].ImageUris.Png.ToString());
+            }
+            else Card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
             _cardImage = _mdfc ? Card.CardFaces?[0].ImageUris?.Png?.ToString() : Card.ImageUris?.Png?.ToString();
             if (UpdatedCard.HasDelegate) await UpdatedCard.InvokeAsync(Card);
         }
