@@ -1,9 +1,10 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+
 @using System.Text
 @using MTGProxyApp.Dtos
 @using MTGProxyApp.Models
 @using MTGProxyApp.Services
-@rendermode InteractiveServer
 
 @inject ScryfallService ScryfallService
 @inject QuestPdfService QuestPdfService
@@ -33,23 +34,21 @@
         <MudCardCard Card="@card" UpdatedCard="OnCardUpdated" @key="card"/>
     }
 </MudGrid>
-<MudOverlay Visible="@(_creatingDocument || _loadingCards)" DarkBackground Absolute Class="blur-overlay">
-    <MudPaper Class="pa-6 d-flex flex-column align-center justify-center">
-        @if (_creatingDocument)
-        {
-            <MudText Typo="Typo.h6" Class="mb-2">Creating PDF…</MudText>
-            <MudProgressCircular Color="Color.Primary" Indeterminate Size="Size.Large" />
-        }
-        else if (_loadingCards)
-        {
-            <MudText Typo="Typo.h6" Class="mb-2">Loading cards… @_loadingValue.ToString("0")%</MudText>
-            <MudProgressCircular Color="Color.Primary" Value="@_loadingValue" Max="100" Size="Size.Large">
-                <ChildContent>
-                    <MudText Typo="Typo.subtitle2">@_loadingValue.ToString("0")%</MudText>
-                </ChildContent>
-            </MudProgressCircular>
-        }
-    </MudPaper>
+<MudOverlay Visible="@(_creatingDocument || _loadingCards)" DarkBackground>
+    @if (_creatingDocument)
+    {
+        <MudText Typo="Typo.h6">Creating PDF…</MudText>
+        <MudProgressCircular Color="Color.Primary" Indeterminate Size="Size.Large" />
+    }
+    else if (_loadingCards)
+    {
+        <MudText Typo="Typo.h6">Loading cards… @_loadingValue.ToString("0")%</MudText>
+        <MudProgressCircular Color="Color.Primary" Value="@_loadingValue" Max="100" Size="Size.Large">
+            <ChildContent>
+                <MudText Typo="Typo.subtitle2">@_loadingValue.ToString("0")%</MudText>
+            </ChildContent>
+        </MudProgressCircular>
+    }
 </MudOverlay>
 
 <style>
@@ -73,7 +72,6 @@
     string _bordersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
 
     bool _loadingCards;
-    int _maxCards;
     float _loadingValue;
     List<string> _currentCardList = new();
     List<CardDto?> _cards = new();
@@ -171,10 +169,10 @@
     {
         _creatingDocument = true;
         StateHasChanged();
+        await Task.Yield();
         try
         {
             _cardPrintList = new();
-            if (_deckName.Equals("")) _deckName = "deck";
             foreach (var card in _cards)
             {
                 for (var i = 0; i < card.Count; i++)
@@ -186,7 +184,7 @@
             var pdfBytes = await QuestPdfService.CreatePdf(_cardPrintList, _blackCornersToggle, _bordersToggle);
             using var stream = new MemoryStream(pdfBytes);
             using var streamRef = new DotNetStreamReference(stream);
-            await Js.InvokeVoidAsync("downloadFileFromStream", $"{_deckName}", streamRef);
+            await Js.InvokeVoidAsync("downloadFileFromStream", _deckName.Equals("") ? "deck" : $"{_deckName}", streamRef);
             Snackbar.Add("Yippie!! I did it!! :)", Severity.Success);
         }
         catch (Exception e)
@@ -198,7 +196,6 @@
             _creatingDocument = false;
             StateHasChanged();
         }
-        
     }
 
     void BlackCornersToggle()

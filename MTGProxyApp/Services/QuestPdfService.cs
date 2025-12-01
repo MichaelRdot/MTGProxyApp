@@ -8,7 +8,7 @@ namespace MTGProxyApp.Services;
 
 public class QuestPdfService
 {
-    private List<byte[]> _cardsPrints;
+    private List<byte[]> _cardsPrints = new();
     private bool _blackCorners = true;
     private bool _borders = true;
     private int _cardsDone;
@@ -18,7 +18,7 @@ public class QuestPdfService
     private const float CrossLength = 8f;
     private const float CrossThickness = 1f;
 
-    public Task<byte[]> CreatePdf(List<byte[]> cardsPrints, bool blackCorners, bool borders, string pdfName = "deck")
+    public Task<byte[]> CreatePdf(List<byte[]> cardsPrints, bool blackCorners, bool borders)
     {
         _cardsPrints = cardsPrints;
         _blackCorners = blackCorners;
