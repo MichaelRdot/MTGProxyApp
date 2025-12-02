@@ -26,6 +26,7 @@
     <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_bordersToggleIcon" OnClick="@BordersToggle">
         Borders
     </MudButton>
+    <MudText Typo="Typo.caption" Align="Align.Right">Total @_cards.Count, or @(_cardPrintList.Count/9) Pages with @(_cardPrintList.Count%9) cards on the last page</MudText>
     <MudDivider/>
 </MudContainer>
 <MudGrid Spacing="4" Justify="Justify.FlexStart">
@@ -71,6 +72,8 @@
     List<string> _currentCardList = new();
     List<CardDto?> _cards = new();
 
+    readonly Exception _noCardException = new ("No card found");
+
     bool _blackCornersToggle;
     bool _bordersToggle;
     List<byte[]> _cardPrintList = new();
@@ -101,6 +104,7 @@
         var tempDeckText = new StringBuilder();
         foreach (var cardLine in _currentCardList) tempDeckText.Append(cardLine + "\n");
         _deckTextField = tempDeckText.ToString();
+        UpdatePrintList();
     }
 
     async Task Load()
@@ -121,17 +125,12 @@
             else
             {
                 var queryStringBuilder = new StringBuilder();
-
-                queryStringBuilder.Append($"!\"{cardModel.Name}\"");
-                if (cardModel.SetCode != null) queryStringBuilder.Append($" set:{cardModel.SetCode}");
-                if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:{cardModel.CollectorNumber}");
-
                 try
                 {
-                    var cardList = await ScryfallService.GetCardsBySearchQuery(queryStringBuilder.ToString());
-                    if (cardList?.Data[0] == null) throw new Exception("Cards not found");
-                    var card = cardList.Data[0];
-
+                    queryStringBuilder.Append($"!\"{cardModel.Name}\" -is:token");
+                    if (cardModel.SetCode != null) queryStringBuilder.Append($" set:{cardModel.SetCode}");
+                    if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:{cardModel.CollectorNumber}");
+                    var card = await CheckScryfall(queryStringBuilder.ToString());
                     card.Count = cardModel.Count;
                     card.LineIndex = _currentCardList.IndexOf(cardLine);
                     if (card.CardFaces?[0].ImageUris?.Png != null)
@@ -140,8 +139,8 @@
                         card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.CardFaces[0].ImageUris.Png.ToString());
                     }
                     else card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
-
-                    _cards.Add(cardList.Data[0]);
+                    if(card.TypeLine.Contains("Token") || card.TypeLine.Contains("Card")) card.IsToken = true;
+                    _cards.Add(card);
                     tempDeckText.Append(UpdateDeckList(card) + "\n");
                     _loadingValue = 100f * _cards.Count / _currentCardList.Count;
                     StateHasChanged();
@@ -149,16 +148,62 @@
                 }
                 catch (Exception e)
                 {
-                    Snackbar.Add($"{e.Message} for line: {cardLine}", Severity.Error);
+                    Snackbar.Add($"{e.Message} for line: {cardLine}, retrying as token", Severity.Error);
+                    try
+                    {
+                        queryStringBuilder = new();
+                        queryStringBuilder.Append($"!\"{cardModel.Name}\" is:token -is:dfc");
+                        if (cardModel.SetCode != null) queryStringBuilder.Append($" set:{cardModel.SetCode}");
+                        if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:{cardModel.CollectorNumber}");
+                        var card = await CheckScryfall(queryStringBuilder.ToString());
+                        card.Count = cardModel.Count;
+                        card.LineIndex = _currentCardList.IndexOf(cardLine);
+                        if (card.CardFaces?[0].ImageUris?.Png != null)
+                        {
+                            card.PreLoadedCardImageBack = await HttpService.LoadCardImage(card.CardFaces[1].ImageUris.Png.ToString());
+                            card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.CardFaces[0].ImageUris.Png.ToString());
+                        }
+                        else card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
+                        card.IsToken = true;
+                        _cards.Add(card);
+                        tempDeckText.Append(UpdateDeckList(card) + "\n");
+                        _loadingValue = 100f * _cards.Count / _currentCardList.Count;
+                        StateHasChanged();
+                        Snackbar.Add($"Successfully added card: {cardModel.Name}", Severity.Success);
+                    }
+                    catch (Exception ex)
+                    {
+                        Snackbar.Add("Failed token check, sorry :(", Severity.Error);
+                    }
                 }
             }
         }
+        UpdatePrintList();
         _deckTextField = tempDeckText.ToString();
         _loadingCards = false;
         _loadingValue = 0;
     }
 
     string UpdateDeckList(CardDto card) => $"{card.Count} {card.Name} ({card.Set.ToUpperInvariant()}) {card.CollectorNumber}";
+
+    void UpdatePrintList()
+    {
+        _cardPrintList = new();
+        foreach (var card in _cards)
+        {
+            for (var i = 0; i < card.Count; i++)
+            {
+                if (card.PreLoadedCardImageBack != null) _cardPrintList.Add(card.PreLoadedCardImageBack);
+                _cardPrintList.Add(card.PreLoadedCardImageFront);
+            }
+        }
+    }
+
+    async Task<CardDto> CheckScryfall(string query)
+    {
+        var cardList = await ScryfallService.GetCardsBySearchQuery(query);
+        return cardList?.Data[0] == null ? throw _noCardException : cardList.Data[0];
+    }
 
     async Task Download()
     {
@@ -167,15 +212,7 @@
         await Task.Yield();
         try
         {
-            _cardPrintList = new();
-            foreach (var card in _cards)
-            {
-                for (var i = 0; i < card.Count; i++)
-                {
-                    if (card.PreLoadedCardImageBack != null) _cardPrintList.Add(card.PreLoadedCardImageBack);
-                    _cardPrintList.Add(card.PreLoadedCardImageFront);
-                }
-            }
+            UpdatePrintList();
             var pdfBytes = await QuestPdfService.CreatePdf(_cardPrintList, _blackCornersToggle, _bordersToggle);
             using var stream = new MemoryStream(pdfBytes);
             using var streamRef = new DotNetStreamReference(stream);

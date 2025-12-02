@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Runtime.InteropServices.Marshalling;
+using System.Text.RegularExpressions;
 
 namespace MTGProxyApp.Models;
 
@@ -9,16 +10,16 @@ public record DeckLineModel(int Count, string Name, string? SetCode, string? Col
         result = null;
         if (string.IsNullOrWhiteSpace(line)) return false;
 
-        var withSet = Regex.Match(line.Trim(),
-            @"^\s*(?:(?<count>\d+)\s+)?(?<name>.+?)(?:\s+\((?<set>[A-Za-z0-9]{3,5})\)(?:\s+(?<num>[A-Za-z0-9]+))?)?\s*$",
+        var tryMatch = Regex.Match(line.Trim(),
+            @"^\s*(?:(?<count>\d+)\s+)?(?<name>.+?)(?:\s+\((?<set>[A-Za-z0-9]{3,5})\)(?:\s+(?<num>[A-Za-z0-9]+))?(?:\s+\*F\*)?)?\s*$",
             RegexOptions.IgnorePatternWhitespace);
-        if (!withSet.Success)
+        if (!tryMatch.Success)
             return false;
 
-        var countGroup = withSet.Groups["count"];
-        var name = withSet.Groups["name"].Value.Trim();
-        var set = withSet.Groups["set"].Success ? withSet.Groups["set"].Value.Trim() : null;
-        var num = withSet.Groups["num"].Success ? withSet.Groups["num"].Value.Trim() : null;
+        var countGroup = tryMatch.Groups["count"];
+        var name = tryMatch.Groups["name"].Value.Trim();
+        var set = tryMatch.Groups["set"].Success ? tryMatch.Groups["set"].Value.Trim() : null;
+        var num = tryMatch.Groups["num"].Success ? tryMatch.Groups["num"].Value.Trim() : null;
 
         var count = countGroup.Success ? int.Parse(countGroup.Value) : 1;
 
