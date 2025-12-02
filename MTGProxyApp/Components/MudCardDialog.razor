@@ -57,7 +57,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (Card.IsToken) _paginatedCardList = await ScryfallService.GetCardsBySearchQuery($"!\"{Card.Name}\" is:token unique:prints -is:dfc");
+        if (Card.IsToken) _paginatedCardList = await ScryfallService.GetCardsBySearchQuery($"!\"{Card.Name}\" unique:prints -is:dfc");
         else _paginatedCardList = await ScryfallService.GetCardsBySearchQuery($"!\"{Card.Name}\" unique:prints");
         _cardList = _paginatedCardList.Data;
         await base.OnInitializedAsync();

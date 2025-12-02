@@ -91,9 +91,7 @@
         {
             _currentCardList.RemoveAt(index);
             _cards.Remove(card);
-            for (var i = index; i < _cards.Count; i++)
-                if (_cards[i] is not null)
-                    _cards[i]!.LineIndex = i;
+            for (var i = index; i < _cards.Count; i++) if (_cards[i] is not null) _cards[i]!.LineIndex = i;
         }
         else
         {
@@ -127,7 +125,7 @@
                 var queryStringBuilder = new StringBuilder();
                 try
                 {
-                    queryStringBuilder.Append($"!\"{cardModel.Name}\" -is:token");
+                    queryStringBuilder.Append($"!\"{cardModel.Name}\"");
                     if (cardModel.SetCode != null) queryStringBuilder.Append($" set:{cardModel.SetCode}");
                     if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:{cardModel.CollectorNumber}");
                     var card = await CheckScryfall(queryStringBuilder.ToString());
@@ -148,33 +146,7 @@
                 }
                 catch (Exception e)
                 {
-                    Snackbar.Add($"{e.Message} for line: {cardLine}, retrying as token", Severity.Error);
-                    try
-                    {
-                        queryStringBuilder = new();
-                        queryStringBuilder.Append($"!\"{cardModel.Name}\" is:token -is:dfc");
-                        if (cardModel.SetCode != null) queryStringBuilder.Append($" set:{cardModel.SetCode}");
-                        if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:{cardModel.CollectorNumber}");
-                        var card = await CheckScryfall(queryStringBuilder.ToString());
-                        card.Count = cardModel.Count;
-                        card.LineIndex = _currentCardList.IndexOf(cardLine);
-                        if (card.CardFaces?[0].ImageUris?.Png != null)
-                        {
-                            card.PreLoadedCardImageBack = await HttpService.LoadCardImage(card.CardFaces[1].ImageUris.Png.ToString());
-                            card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.CardFaces[0].ImageUris.Png.ToString());
-                        }
-                        else card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
-                        card.IsToken = true;
-                        _cards.Add(card);
-                        tempDeckText.Append(UpdateDeckList(card) + "\n");
-                        _loadingValue = 100f * _cards.Count / _currentCardList.Count;
-                        StateHasChanged();
-                        Snackbar.Add($"Successfully added card: {cardModel.Name}", Severity.Success);
-                    }
-                    catch (Exception ex)
-                    {
-                        Snackbar.Add("Failed token check, sorry :(", Severity.Error);
-                    }
+                    Snackbar.Add($"{e.Message} for line: {cardLine}", Severity.Error);
                 }
             }
         }

@@ -19,7 +19,9 @@ public class ScryfallService
         searchQuery = searchQuery.Replace($"{(char)92}{(char)34}", $"{(char)34}");
         searchQuery = searchQuery.Replace(" ", "+");
         var uri = new Uri($"{_client.BaseAddress}search?order=released&q={searchQuery}");
+        var uriBackup = new Uri($"{_client.BaseAddress}search?include_extras=true&order=released&q=-is:dfc+{searchQuery}");
         var cardList = await _httpService.GetResponse<PaginatedListDto<CardDto?>>(uri);
+        if (cardList == null) cardList = await _httpService.GetResponse<PaginatedListDto<CardDto?>>(uriBackup);
         return cardList ?? throw new Exception("Could not get anything from scryfall");
     }
 }
