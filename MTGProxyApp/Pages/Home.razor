@@ -113,6 +113,7 @@
     async Task Load()
     {
         var tempDeckText = new StringBuilder();
+        _cardsFailedList.Clear();
         _cards = new();
         _currentCardList = _deckTextField
             .Split("\n", StringSplitOptions.RemoveEmptyEntries)
