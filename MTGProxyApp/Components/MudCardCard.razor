@@ -9,8 +9,7 @@
             <MudButton @onclick="OpenArtPickerAsync">
                 <MudImage Src="@_cardImage" Fluid/>
             </MudButton>
-            <MudText Inline Align="Align.Left">(@Card.Set.ToUpperInvariant()) @Card.CollectorNumber</MudText>
-            <MudText Inline Align="Align.Center">@Card.Count</MudText>
+            <MudText Inline Align="Align.Left">Set:(@Card.Set.ToUpperInvariant()), Collector#:@Card.CollectorNumber, Count:@Card.Count</MudText>
             <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposurePlus1" @onclick="Add"/>
             <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposureNeg1" @onclick="Subtract"/>
         </MudCardContent>
