@@ -26,7 +26,7 @@
     <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_bordersToggleIcon" OnClick="@BordersToggle">
         Borders
     </MudButton>
-    <MudText Typo="Typo.caption" Align="Align.Right">Total @_cardPrintList.Count, or @(_cardPrintList.Count/9) Pages with @(_cardPrintList.Count%9) cards on the last page</MudText>
+    <MudText Typo="Typo.caption" Align="Align.Right">Total @_cardPrintList.Count, or @Math.Ceiling((decimal)(_cardPrintList.Count/9)) Pages with @(_cardPrintList.Count%9) cards on the last page</MudText>
     <MudDivider/>
 </MudContainer>
 <MudGrid Spacing="4" Justify="Justify.FlexStart">
@@ -143,7 +143,7 @@
                         card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.CardFaces[0].ImageUris.Png.ToString());
                     }
                     else card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
-                    if(card.TypeLine.Contains("Token") || card.TypeLine.Contains("Card")) card.IsToken = true;
+                    if(card.TypeLine != null && (card.TypeLine.Contains("Token") || card.TypeLine.Contains("Card"))) card.IsToken = true;
                     _cards.Add(card);
                     tempDeckText.Append($"{UpdateDeckList(card)}\n");
                     _loadingValue = 100f * _cards.Count / _currentCardList.Count;
