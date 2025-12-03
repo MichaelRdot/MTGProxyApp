@@ -81,6 +81,7 @@
     bool _blackCornersToggle;
     bool _bordersToggle;
     List<byte[]> _cardPrintList = new();
+    List<string> _cardsFailedList = new();
 
     bool _creatingDocument;
 
@@ -143,18 +144,24 @@
                     else card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
                     if(card.TypeLine.Contains("Token") || card.TypeLine.Contains("Card")) card.IsToken = true;
                     _cards.Add(card);
-                    tempDeckText.Append(UpdateDeckList(card) + "\n");
+                    tempDeckText.Append($"{UpdateDeckList(card)}\n");
                     _loadingValue = 100f * _cards.Count / _currentCardList.Count;
                     StateHasChanged();
                     Snackbar.Add($"Successfully added card: {cardModel.Name}", Severity.Success);
                 }
                 catch (Exception e)
                 {
+                    _cardsFailedList.Add(cardLine);
                     Snackbar.Add($"{e.Message} for line: {cardLine}", Severity.Error);
                 }
             }
         }
         UpdatePrintList();
+        if(_cardsFailedList.Count > 0)
+        {
+            tempDeckText.Append("\nCard Lines Failed:\n");
+            foreach (var cardLine in _cardsFailedList) tempDeckText.Append($"{cardLine}\n");
+        }
         _deckTextField = tempDeckText.ToString();
         _loadingCards = false;
         _loadingValue = 0;
