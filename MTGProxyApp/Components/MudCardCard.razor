@@ -16,13 +16,6 @@
     </MudCard>
 </MudItem>
 
-<style>
-    .my-custom-class {
-        backdrop-filter: blur(10px);
-    }
-</style>
-
-
 @code{
     [Parameter] public required CardDto Card { get; set; }
     [Parameter] public EventCallback<CardDto> UpdatedCard { get; set; }
@@ -40,18 +33,13 @@
     private async Task OpenArtPickerAsync()
     {
         var cardDialogParameters = new DialogParameters { ["Card"] = Card };
-        DialogOptions cardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, BackdropClick = true, BackgroundClass = ".my-custom-class" };
+        DialogOptions cardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, BackdropClick = true };
         var dialog = await DialogService.ShowAsync<MudCardDialog>($"{Card.Name}", cardDialogParameters, cardDialogOptions);
         var result = await dialog.Result;
         if (result.Canceled) return;
         if (result.Data is CardDto card)
         {
-            Card.Set = card.Set;
-            Card.PrintsSearchUri = card.PrintsSearchUri;
-            Card.CollectorNumber = card.CollectorNumber;
-            Card.HighresImage = card.HighresImage;
-            Card.ImageUris = card.ImageUris;
-            Card.CardFaces = card.CardFaces;
+            Card = card;
 
             _mdfc = Card.CardFaces?[0].ImageUris != null;
             if (_mdfc)

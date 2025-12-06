@@ -40,25 +40,15 @@
     private PaginatedListDto<CardDto> _paginatedCardList;
     private List<PaginatedListDto<CardDto>> _paginatedCardListList;
 
-    private void Close()
-    {
-        MudDialog.Cancel();
-    }
-
-    private void SelectArt(CardDto card)
-    {
-        MudDialog.Close(DialogResult.Ok(card));
-    }
-
-    private string GetImageUrl(CardDto card)
-    {
-        return card.ImageUris?.Png?.ToString() ?? card.CardFaces?.FirstOrDefault()?.ImageUris?.Png?.ToString() ?? "images/card-placeholder.png";
-    }
+    private void Close() => MudDialog.Cancel();
+    
+    private void SelectArt(CardDto card) => MudDialog.Close(DialogResult.Ok(card));
+    
+    private string GetImageUrl(CardDto card) => card.ImageUris?.Png?.ToString() ?? card.CardFaces?.FirstOrDefault()?.ImageUris?.Png?.ToString() ?? "images/card-placeholder.png";
 
     protected override async Task OnInitializedAsync()
     {
-        if (Card.IsToken) _paginatedCardList = await ScryfallService.GetCardsBySearchQuery($"!\"{Card.Name}\" unique:prints -is:dfc");
-        else _paginatedCardList = await ScryfallService.GetCardsBySearchQuery($"!\"{Card.Name}\" unique:prints");
+        _paginatedCardList = await ScryfallService.GetCardsBySearchQuery($"\"{Card.Name}\" unique:prints");
         _cardList = _paginatedCardList.Data;
         await base.OnInitializedAsync();
     }
@@ -68,5 +58,4 @@
         _paginatedCardList = await HttpService.GetResponse<PaginatedListDto<CardDto>>(_paginatedCardList.NextPage);
         _cardList.AddRange(_paginatedCardList.Data);
     }
-
 }

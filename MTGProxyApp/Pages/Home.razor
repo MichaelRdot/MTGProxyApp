@@ -131,13 +131,14 @@
                 var queryStringBuilder = new StringBuilder();
                 try
                 {
-                    queryStringBuilder.Append($"!\"{cardModel.Name}\"");
-                    if (cardModel.SetCode != null) queryStringBuilder.Append($" set:{cardModel.SetCode}");
-                    if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:{cardModel.CollectorNumber}");
+                    queryStringBuilder.Append($"\"{cardModel.Name}\"");
+                    if (cardModel.SetCode != null) queryStringBuilder.Append($" set:\"{cardModel.SetCode}\"");
+                    if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:\"{cardModel.CollectorNumber}\"");
                     var card = await CheckScryfall(queryStringBuilder.ToString());
+
                     card.Count = cardModel.Count;
                     card.LineIndex = _currentCardList.IndexOf(cardLine);
-                    if (card.CardFaces?[0].ImageUris?.Png != null)
+                    if (card.CardFaces?[0].ImageUris != null)
                     {
                         card.PreLoadedCardImageBack = await HttpService.LoadCardImage(card.CardFaces[1].ImageUris.Png.ToString());
                         card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.CardFaces[0].ImageUris.Png.ToString());
