@@ -26,6 +26,9 @@
     <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_bordersToggleIcon" OnClick="@BordersToggle">
         Borders
     </MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_printFlipCardsSeparateToggleIcon" OnClick="@PrintFlipCardsSeparateToggle">
+        Print Flip Cards Separate
+    </MudButton>
     <MudText Typo="Typo.caption" Align="Align.Right">Total @_cardPrintList.Count, or @Math.Ceiling((decimal)(_cardPrintList.Count/9)) Pages with @(_cardPrintList.Count%9) cards on the last page</MudText>
     <MudDivider/>
 </MudContainer>
@@ -70,6 +73,7 @@
 
     string _blackCornersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
     string _bordersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
+    string _printFlipCardsSeparateToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
 
     bool _loadingCards;
     float _loadingValue;
@@ -78,9 +82,10 @@
 
     readonly Exception _noCardException = new ("No card found");
 
+    bool _printFlipCardsSeparateToggle;
     bool _blackCornersToggle;
     bool _bordersToggle;
-    List<byte[]> _cardPrintList = new();
+    List<List<byte[]>> _cardPrintList = new();
     List<string> _cardsFailedList = new();
 
     bool _creatingDocument;
@@ -107,7 +112,6 @@
         var tempDeckText = new StringBuilder();
         foreach (var cardLine in _currentCardList) tempDeckText.Append(cardLine + "\n");
         _deckTextField = tempDeckText.ToString();
-        UpdatePrintList();
     }
 
     async Task Load()
@@ -158,7 +162,6 @@
                 }
             }
         }
-        UpdatePrintList();
         if(_cardsFailedList.Count > 0)
         {
             tempDeckText.Append("\nCard Lines Failed:\n");
@@ -174,12 +177,23 @@
     void UpdatePrintList()
     {
         _cardPrintList = new();
+        _cardPrintList.Add(new List<byte[]>());
+        _cardPrintList.Add(new List<byte[]>());
+        _cardPrintList.Add(new List<byte[]>());
         foreach (var card in _cards)
         {
             for (var i = 0; i < card.Count; i++)
             {
-                if (card.PreLoadedCardImageBack != null) _cardPrintList.Add(card.PreLoadedCardImageBack);
-                _cardPrintList.Add(card.PreLoadedCardImageFront);
+                if (card.PreLoadedCardImageBack != null && _printFlipCardsSeparateToggle)
+                {
+                    _cardPrintList[1].Add(card.PreLoadedCardImageFront);
+                    _cardPrintList[2].Add(card.PreLoadedCardImageBack);
+                }
+                else
+                {
+                    _cardPrintList[0].Add(card.PreLoadedCardImageFront);
+                    if (card.PreLoadedCardImageBack != null) _cardPrintList[0].Add(card.PreLoadedCardImageBack);
+                }
             }
         }
     }
@@ -198,7 +212,7 @@
         try
         {
             UpdatePrintList();
-            var pdfBytes = await QuestPdfService.CreatePdf(_cardPrintList, _blackCornersToggle, _bordersToggle);
+            var pdfBytes = await QuestPdfService.CreatePdf(_cardPrintList, _blackCornersToggle, _bordersToggle, _printFlipCardsSeparateToggle);
             using var stream = new MemoryStream(pdfBytes);
             using var streamRef = new DotNetStreamReference(stream);
             await Js.InvokeVoidAsync("downloadFileFromStream", _deckName.Equals("") ? "deck" : $"{_deckName}", streamRef);
@@ -225,6 +239,10 @@
     {
         _bordersToggle = !_bordersToggle;
         _bordersToggleIcon = _bordersToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
-
+    }
+    void PrintFlipCardsSeparateToggle()
+    {
+        _printFlipCardsSeparateToggle = !_printFlipCardsSeparateToggle;
+        _printFlipCardsSeparateToggleIcon = _printFlipCardsSeparateToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
     }
 }
