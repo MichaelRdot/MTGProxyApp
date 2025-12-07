@@ -6,7 +6,7 @@ using static QuestPDF.Infrastructure.Unit;
 
 namespace MTGProxyApp.Services;
 
-public class QuestPdfService
+public class QuestPdfService(IWebHostEnvironment env)
 {
     private readonly float _cardHeight = UnitExtensions.ToPoints(88f, Millimetre);
     private readonly float _cardWidth = UnitExtensions.ToPoints(63f, Millimetre);
@@ -24,7 +24,7 @@ public class QuestPdfService
             {
                 doc.Page(MakePage(page, blackCorners, borders));
             }
-            if (printFlipCardsSeparate && cardPages[1].Count > 0)
+            if (printFlipCardsSeparate && cardsPrints[1].Count > 0)
             {
                 cardPages = cardsPrints[1].Chunk(9).Select(chunk => chunk.ToList()).ToList();
                 foreach (var page in cardPages)
@@ -34,7 +34,22 @@ public class QuestPdfService
                 cardPages = cardsPrints[2].Chunk(9).Select(chunk => chunk.ToList()).ToList();
                 foreach (var page in cardPages)
                 {
-                    doc.Page(MakePage(page, blackCorners, borders));
+                    var pageLineChunkList = page.Chunk(3).Select(chunk => chunk.ToList()).ToList();
+                    for (var chunkIndex = 0; chunkIndex < pageLineChunkList.Count; chunkIndex++)
+                    {
+                        var pageLineChunk = pageLineChunkList[chunkIndex];
+                        var tempPageLineChunk = new List<byte[]>();
+                        for (var i = 0; i < 3 - pageLineChunk.Count; i++)
+                            tempPageLineChunk.
+                                Add(File.ReadAllBytes(Path.Combine(env.WebRootPath, "Images", "Michael Proxy Card Back.png")));
+                        for (var i = pageLineChunk.Count - 1; i >= 0; i--)
+                        {
+                            tempPageLineChunk.Add(pageLineChunk[i]);
+                        }
+                        pageLineChunkList[chunkIndex] = tempPageLineChunk;
+                    }
+                    var newPage = pageLineChunkList.SelectMany(x => x).ToList();
+                    doc.Page(MakePage(newPage, blackCorners, borders));
                 }
             }
         });
@@ -59,33 +74,29 @@ public class QuestPdfService
                     columns.ConstantColumn(_cardWidth);
                     columns.ConstantColumn(_cardWidth);
                 });
-                for (var i = 0; i < 9 && cardsDone < cards.Count; i++)
+                foreach (var card in cards)
                 {
-                    table.Cell().Element(card =>
+                    table.Cell().Element(cardElement =>
                     {
-                        card
-                            .Height(_cardHeight)
-                            .Width(_cardWidth)
-                            .Layers(layers =>
-                            {
-                                layers.PrimaryLayer()
-                                    .Border(borders ? 1 : 0, Colors.Black)
-                                    .Background(blackCorners ? Colors.Black : Colors.White)
-                                    .Image(cards[cardsDone])
-                                    .WithCompressionQuality(ImageCompressionQuality.Best)
-                                    .WithRasterDpi(300);
-                                if (!blackCorners) return;
-                                layers.Layer().Element(e =>
-                                    e.AlignLeft().AlignTop().CornerCross(CrossLength, CrossThickness));
-                                layers.Layer().Element(e =>
-                                    e.AlignRight().AlignTop().CornerCross(CrossLength, CrossThickness));
-                                layers.Layer().Element(e =>
-                                    e.AlignLeft().AlignBottom().CornerCross(CrossLength, CrossThickness));
-                                layers.Layer().Element(e =>
-                                    e.AlignRight().AlignBottom().CornerCross(CrossLength, CrossThickness));
-                            });
+                        cardElement.Height(_cardHeight).Width(_cardWidth).Layers(layers =>
+                        {
+                            layers.PrimaryLayer()
+                                .Border(borders ? 1 : 0, Colors.Black)
+                                .Background(blackCorners ? Colors.Black : Colors.White)
+                                .Image(card)
+                                .WithCompressionQuality(ImageCompressionQuality.Best)
+                                .WithRasterDpi(300);
+                            if (!blackCorners) return;
+                            layers.Layer().Element(e =>
+                                e.AlignLeft().AlignTop().CornerCross(CrossLength, CrossThickness));
+                            layers.Layer().Element(e =>
+                                e.AlignRight().AlignTop().CornerCross(CrossLength, CrossThickness));
+                            layers.Layer().Element(e =>
+                                e.AlignLeft().AlignBottom().CornerCross(CrossLength, CrossThickness));
+                            layers.Layer().Element(e =>
+                                e.AlignRight().AlignBottom().CornerCross(CrossLength, CrossThickness));
+                        });
                     });
-                    cardsDone++;
                 }
             });
         };
