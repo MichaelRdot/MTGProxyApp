@@ -6,12 +6,12 @@
 <MudItem xs="12" sm="6" md="4" lg="3" xl="2" xxl="1">
     <MudCard Outlined="true">
         <MudCardContent>
-            <MudButton @onclick="OpenArtPickerAsync">
+            <MudButton OnClick="@OpenArtPickerAsync">
                 <MudImage Src="@_cardImage" Fluid/>
             </MudButton>
             <MudText Inline Align="Align.Left">Set:(@Card.Set.ToUpperInvariant()), Collector#:@Card.CollectorNumber, Count:@Card.Count</MudText>
-            <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposurePlus1" @onclick="Add"/>
-            <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposureNeg1" @onclick="Subtract"/>
+            <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposurePlus1" OnClick="@Add"/>
+            <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposureNeg1" OnClick="@Subtract"/>
         </MudCardContent>
     </MudCard>
 </MudItem>
@@ -28,6 +28,7 @@
     {
         if (Card.CardFaces?[0].ImageUris != null) _mdfc = true;
         _cardImage = _mdfc ? Card.CardFaces?[0].ImageUris?.Png?.ToString() : Card.ImageUris?.Png?.ToString();
+        await base.OnInitializedAsync();
     }
 
     private async Task OpenArtPickerAsync()
@@ -39,6 +40,9 @@
         if (result.Canceled) return;
         if (result.Data is CardDto card)
         {
+            card.Count = Card.Count;
+            card.LineIndex = Card.LineIndex;
+            card.IsToken = Card.IsToken;
             Card = card;
 
             _mdfc = Card.CardFaces?[0].ImageUris != null;

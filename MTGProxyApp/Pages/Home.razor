@@ -92,7 +92,7 @@
 
     void OnCardUpdated(CardDto card)
     {
-        var index = _cards.IndexOf(card);
+        var index = card.LineIndex;
         var newLine = UpdateDeckList(card);
         _currentCardList = _deckTextField
             .Split("\n", StringSplitOptions.RemoveEmptyEntries)
@@ -139,7 +139,7 @@
                     if (cardModel.SetCode != null) queryStringBuilder.Append($" set:\"{cardModel.SetCode}\"");
                     if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:\"{cardModel.CollectorNumber}\"");
                     var card = await CheckScryfall(queryStringBuilder.ToString());
-
+                    
                     card.Count = cardModel.Count;
                     card.LineIndex = _currentCardList.IndexOf(cardLine);
                     if (card.CardFaces?[0].ImageUris != null)

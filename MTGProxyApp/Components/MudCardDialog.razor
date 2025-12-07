@@ -48,7 +48,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _paginatedCardList = await ScryfallService.GetCardsBySearchQuery($"\"{Card.Name}\" unique:prints");
+        _paginatedCardList = (Card.CardFaces?.Length < 0) ? await ScryfallService.GetCardsBySearchQuery($"oracleid:\"{Card.OracleId}\" unique:prints") : await ScryfallService.GetCardsBySearchQuery($"oracleid:\"{Card.CardFaces[0].OracleId}\" unique:prints");
         _cardList = _paginatedCardList.Data;
         await base.OnInitializedAsync();
     }
