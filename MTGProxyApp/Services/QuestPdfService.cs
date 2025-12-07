@@ -13,7 +13,7 @@ public class QuestPdfService
     private readonly float _paddingTop = (PageSizes.Letter.Height - UnitExtensions.ToPoints(88f, Millimetre) * 3) / 2;
 
     private const float CrossLength = 8f;
-    private const float CrossThickness = 1f;
+    private const float CrossThickness = 1f; 
 
     public Task<byte[]> CreatePdf(List<List<byte[]>> cardsPrints, bool blackCorners, bool borders, bool printFlipCardsSeparate)
     {
