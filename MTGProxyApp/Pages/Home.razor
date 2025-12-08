@@ -15,6 +15,11 @@
 <MudContainer>
     <MudGrid Justify="Justify.SpaceBetween">
         <MudItem xs="12">
+            <div class="d-flex justify-center">
+                <MudImage Fluid ObjectFit="ObjectFit.Fill" Src="Images/MichaelProxiesBanner.png"/>
+            </div>
+        </MudItem>
+        <MudItem xs="12">
             <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@_deckTextFieldLabel"
                           HelperText="@_deckTextFieldHelperText" Placeholder="@_deckTextFieldPlaceholderText"
                           HelperTextOnFocus/>

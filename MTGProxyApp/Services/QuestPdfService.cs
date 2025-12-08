@@ -41,7 +41,7 @@ public class QuestPdfService(IWebHostEnvironment env)
                         var tempPageLineChunk = new List<byte[]>();
                         for (var i = 0; i < 3 - pageLineChunk.Count; i++)
                             tempPageLineChunk.
-                                Add(File.ReadAllBytes(Path.Combine(env.WebRootPath, "Images", "Michael Proxy Card Back.png")));
+                                Add(File.ReadAllBytes(Path.Combine(env.WebRootPath, "Images", "Transparent.png")));
                         for (var i = pageLineChunk.Count - 1; i >= 0; i--)
                         {
                             tempPageLineChunk.Add(pageLineChunk[i]);
@@ -82,7 +82,7 @@ public class QuestPdfService(IWebHostEnvironment env)
                         {
                             layers.PrimaryLayer()
                                 .Border(borders ? 1 : 0, Colors.Black)
-                                .Background(blackCorners ? Colors.Black : Colors.White)
+                                .Background(blackCorners && (!card.SequenceEqual(File.ReadAllBytes(Path.Combine(env.WebRootPath, "Images", "Transparent.png")))) ? Colors.Black : Colors.White)
                                 .Image(card)
                                 .WithCompressionQuality(ImageCompressionQuality.Best)
                                 .WithRasterDpi(300);
