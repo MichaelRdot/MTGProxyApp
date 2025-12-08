@@ -224,8 +224,8 @@
                 }
             }
         }
-        _deckTooltip = $"Total {_cardPrintList[0].Count} prints, or {Math.Ceiling((double)_cardPrintList[0].Count / 9)} pages with {(_cardPrintList[0].Count - 1) % 9 + 1} cards on the last page.";
-        if (_printFlipCardsSeparateToggle) _deckTooltip += $" {_cardPrintList[1].Count} flip cards, or {2 * Math.Ceiling((double)_cardPrintList[1].Count / 9)} pages with {(_cardPrintList[1].Count - 1) % 9 + 1} cards on the last two pages.";
+        if (_cardPrintList[0].Count != 0) _deckTooltip = $"Total {_cardPrintList[0].Count} prints, or {Math.Ceiling((double)_cardPrintList[0].Count / 9)} pages with {(_cardPrintList[0].Count - 1) % 9 + 1} cards on the last page. ";
+        if (_printFlipCardsSeparateToggle) _deckTooltip += $"{_cardPrintList[1].Count} flip cards, or {2 * Math.Ceiling((double)_cardPrintList[1].Count / 9)} pages with {(_cardPrintList[1].Count - 1) % 9 + 1} cards on the last two pages.";
     }
 
     async Task<CardDto> CheckScryfall(string query)
