@@ -37,7 +37,7 @@
     [Parameter] public required CardDto Card { get; set; }
 
     private List<CardDto> _cardList = new();
-    private PaginatedListDto<CardDto> _paginatedCardList;
+    private PaginatedListDto<CardDto?>? _paginatedCardList;
     private List<PaginatedListDto<CardDto>> _paginatedCardListList;
 
     private void Close() => MudDialog.Cancel();
@@ -48,7 +48,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _paginatedCardList = (Card.CardFaces?.Length < 0) ? await ScryfallService.GetCardsBySearchQuery($"oracleid:\"{Card.OracleId}\" unique:prints") : await ScryfallService.GetCardsBySearchQuery($"oracleid:\"{Card.CardFaces[0].OracleId}\" unique:prints");
+        _paginatedCardList = (Card.CardFaces == null) ? await ScryfallService.GetCardsBySearchQuery($"oracleid:\"{Card.OracleId}\" unique:prints") : await ScryfallService.GetCardsBySearchQuery($"oracleid:\"{Card.CardFaces[0].OracleId}\" unique:prints");
         _cardList = _paginatedCardList.Data;
         await base.OnInitializedAsync();
     }
