@@ -13,23 +13,41 @@
 @inject IJSRuntime Js
 
 <MudContainer>
-    <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@_deckTextFieldLabel"
-                  HelperText="@_deckTextFieldHelperText" Placeholder="@_deckTextFieldPlaceholderText"
-                  HelperTextOnFocus/>
-    <MudTextField @bind-Value="_deckName" Variant="Variant.Outlined" Lines="1" Label="@_deckNameLabel"
-                  HelperText="@_deckNameHelperText" Placeholder="@_deckNamePlaceholderText" HelperTextOnFocus/>
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Load">Load</MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Download">Download</MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_blackCornersToggleIcon"
-               OnClick="@BlackCornersToggle">BlackCorners
-    </MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_bordersToggleIcon" OnClick="@BordersToggle">
-        Borders
-    </MudButton>
-    <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_printFlipCardsSeparateToggleIcon" OnClick="@PrintFlipCardsSeparateToggle">
-        Print Flip Cards Separate
-    </MudButton>
-    <MudText Typo="Typo.caption" Align="Align.Right">Total @_cardPrintList.Count, or @Math.Ceiling((decimal)(_cardPrintList.Count/9)) Pages with @(_cardPrintList.Count%9) cards on the last page</MudText>
+    <MudGrid Justify="Justify.SpaceBetween">
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@_deckTextFieldLabel"
+                          HelperText="@_deckTextFieldHelperText" Placeholder="@_deckTextFieldPlaceholderText"
+                          HelperTextOnFocus/>
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Load" Class="d-flex align-center justify-center mud-width-full py-8">Load</MudButton>
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_deckName" Variant="Variant.Outlined" Lines="1" Label="@_deckNameLabel"
+                          HelperText="@_deckNameHelperText" Placeholder="@_deckNamePlaceholderText" HelperTextOnFocus/>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_blackCornersToggleIcon"
+                       OnClick="@BlackCornersToggle" Class="d-flex align-center justify-center mud-width-full py-8">BlackCorners
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_bordersToggleIcon" OnClick="@BordersToggle" Class="d-flex align-center justify-center mud-width-full py-8">
+                Borders
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_printFlipCardsSeparateToggleIcon" OnClick="@PrintFlipCardsSeparateToggle" Class="d-flex align-center justify-center mud-width-full py-8">
+                Print Flip Cards Separate
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Download" Class="d-flex align-center justify-center mud-width-full py-8">Download</MudButton>
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_deckTooltip" ReadOnly Label="Tooltip" Typo="Typo.body1" Variant="Variant.Outlined" Lines="1"/>
+        </MudItem>
+    </MudGrid>
     <MudDivider/>
 </MudContainer>
 <MudGrid Spacing="4" Justify="Justify.FlexStart">
@@ -60,6 +78,8 @@
 @code{
     string _deckTextField = "";
     string _deckName = "";
+    string _deckTooltip = "Total 0 prints, or 0 Pages with 0 cards on the last page.";
+
     readonly string _deckTextFieldLabel = "Deck Text";
     readonly string _deckTextFieldHelperText = "This is where you put your deck :)";
     readonly string _deckTextFieldPlaceholderText = "1 Sol ring (C21) 263\n5 sol ring\nsol ring (C21)\nsol ring\n\n" +
@@ -112,6 +132,7 @@
         var tempDeckText = new StringBuilder();
         foreach (var cardLine in _currentCardList) tempDeckText.Append(cardLine + "\n");
         _deckTextField = tempDeckText.ToString();
+        UpdatePrintList();
     }
 
     async Task Load()
@@ -167,6 +188,8 @@
             tempDeckText.Append("\nCard Lines Failed:\n");
             foreach (var cardLine in _cardsFailedList) tempDeckText.Append($"{cardLine}\n");
         }
+
+        UpdatePrintList();
         _deckTextField = tempDeckText.ToString();
         _loadingCards = false;
         _loadingValue = 0;
@@ -196,6 +219,8 @@
                 }
             }
         }
+        _deckTooltip = $"Total {_cardPrintList[0].Count} prints, or {Math.Ceiling((double)_cardPrintList[0].Count / 9)} pages with {(_cardPrintList[0].Count - 1) % 9 + 1} cards on the last page.";
+        if (_printFlipCardsSeparateToggle) _deckTooltip += $" {_cardPrintList[1].Count} flip cards, or {2 * Math.Ceiling((double)_cardPrintList[1].Count / 9)} pages with {(_cardPrintList[1].Count - 1) % 9 + 1} cards on the last two pages.";
     }
 
     async Task<CardDto> CheckScryfall(string query)
@@ -244,5 +269,6 @@
     {
         _printFlipCardsSeparateToggle = !_printFlipCardsSeparateToggle;
         _printFlipCardsSeparateToggleIcon = _printFlipCardsSeparateToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
+        UpdatePrintList();
     }
 }
