@@ -161,7 +161,7 @@
                 var queryStringBuilder = new StringBuilder();
                 try
                 {
-                    queryStringBuilder.Append($"\"{cardModel.Name}\"");
+                    queryStringBuilder.Append($"!\"{cardModel.Name}\"");
                     if (cardModel.SetCode != null) queryStringBuilder.Append($" set:\"{cardModel.SetCode}\"");
                     if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:\"{cardModel.CollectorNumber}\"");
                     var card = await CheckScryfall(queryStringBuilder.ToString());
