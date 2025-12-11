@@ -1,4 +1,5 @@
 ﻿using MTGProxyApp.Containers;
+using MTGProxyApp.Pages;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -11,12 +12,17 @@ public class QuestPdfService(IWebHostEnvironment env)
     private readonly float _cardHeight = UnitExtensions.ToPoints(88f, Millimetre);
     private readonly float _cardWidth = UnitExtensions.ToPoints(63f, Millimetre);
     private readonly float _paddingTop = (PageSizes.Letter.Height - UnitExtensions.ToPoints(88f, Millimetre) * 3) / 2;
+    private int _cardsCompleted = 0;
+    private int _numPrints = 0;
 
     private const float CrossLength = 8f;
     private const float CrossThickness = 1f; 
 
     public Task<byte[]> CreatePdf(List<List<byte[]>> cardsPrints, bool blackCorners, bool borders, bool printFlipCardsSeparate)
     {
+        _numPrints = 0;
+        _cardsCompleted = 0;
+        foreach (var cardsList in from cardsList in cardsPrints from card in cardsList select cardsList) _numPrints++;
         var doc = Document.Create(doc =>
         {
             var cardPages = cardsPrints[0].Chunk(9).Select(chunk => chunk.ToList()).ToList();
@@ -58,7 +64,6 @@ public class QuestPdfService(IWebHostEnvironment env)
 
     private Action<PageDescriptor> MakePage(List<byte[]> cards, bool blackCorners, bool borders)
     {  
-        var cardsDone = 0;
         return page =>
         {
             page.Size(PageSizes.Letter);
@@ -76,13 +81,16 @@ public class QuestPdfService(IWebHostEnvironment env)
                 });
                 foreach (var card in cards)
                 {
+                    bool fakeCard = !card.SequenceEqual(
+                        File.ReadAllBytes(Path.Combine(env.WebRootPath, "Images", "Transparent.png")));
+                    bool backgroundBool = blackCorners && fakeCard;
                     table.Cell().Element(cardElement =>
                     {
                         cardElement.Height(_cardHeight).Width(_cardWidth).Layers(layers =>
                         {
                             layers.PrimaryLayer()
                                 .Border(borders ? 1 : 0, Colors.Black)
-                                .Background(blackCorners && (!card.SequenceEqual(File.ReadAllBytes(Path.Combine(env.WebRootPath, "Images", "Transparent.png")))) ? Colors.Black : Colors.White)
+                                .Background(backgroundBool ? Colors.Black : Colors.White)
                                 .Image(card)
                                 .WithCompressionQuality(ImageCompressionQuality.Best)
                                 .WithRasterDpi(300);

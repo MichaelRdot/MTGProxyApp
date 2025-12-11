@@ -1,9 +1,6 @@
 ﻿@page "/"
 @rendermode InteractiveServer
 
-@using System.Text
-@using MTGProxyApp.Dtos
-@using MTGProxyApp.Models
 @using MTGProxyApp.Services
 
 @inject ScryfallService ScryfallService
@@ -12,24 +9,21 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime Js
 
-<MudContainer>
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudImage Fluid ObjectFit="ObjectFit.ScaleDown" ObjectPosition="ObjectPosition.Center" Src="Images/MichaelProxiesBanner.png"/>
+</MudContainer>
+<MudContainer MaxWidth="MaxWidth.Large">
     <MudGrid Justify="Justify.SpaceBetween">
         <MudItem xs="12">
-            <div class="d-flex justify-center">
-                <MudImage Fluid ObjectFit="ObjectFit.Fill" Src="Images/MichaelProxiesBanner.png"/>
-            </div>
-        </MudItem>
-        <MudItem xs="12">
             <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@_deckTextFieldLabel"
-                          HelperText="@_deckTextFieldHelperText" Placeholder="@_deckTextFieldPlaceholderText"
-                          HelperTextOnFocus/>
+                          HelperText="@_deckTextFieldHelperText" Placeholder="@_deckTextFieldPlaceholderText"/>
         </MudItem>
         <MudItem xs="12">
             <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Load" Class="d-flex align-center justify-center mud-width-full py-8">Load</MudButton>
         </MudItem>
         <MudItem xs="12">
             <MudTextField @bind-Value="_deckName" Variant="Variant.Outlined" Lines="1" Label="@_deckNameLabel"
-                          HelperText="@_deckNameHelperText" Placeholder="@_deckNamePlaceholderText" HelperTextOnFocus/>
+                          HelperText="@_deckNameHelperText" Placeholder="@_deckNamePlaceholderText"/>
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_blackCornersToggleIcon"
@@ -50,10 +44,11 @@
             <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Download" Class="d-flex align-center justify-center mud-width-full py-8">Download</MudButton>
         </MudItem>
         <MudItem xs="12">
-            <MudTextField @bind-Value="_deckTooltip" ReadOnly Label="Tooltip" Typo="Typo.body1" Variant="Variant.Outlined" Lines="1"/>
+            <MudTextField @bind-Value="_deckTooltip" ReadOnly Label="Tooltip" Typo="Typo.body1" Variant="Variant.Outlined" Lines="1" HelperText="@_toolTipHelperText"/>
         </MudItem>
     </MudGrid>
-    <MudDivider/>
+    <MudFlexBreak />
+    <MudDivider />
 </MudContainer>
 <MudGrid Spacing="4" Justify="Justify.FlexStart">
     @foreach (var card in _cards)
@@ -66,7 +61,11 @@
         @if (_creatingDocument)
         {
             <MudText Typo="Typo.h6">Creating PDF…</MudText>
-            <MudProgressCircular Color="Color.Primary" Indeterminate Size="Size.Large"/>
+            <MudProgressCircular Color="Color.Primary" Value="@_cardsPrintedValue" Max="100" Size="Size.Large">
+                <ChildContent>
+                    <MudText Typo="Typo.subtitle2">@_cardsPrintedValue.ToString("0")%</MudText>
+                </ChildContent>
+            </MudProgressCircular>
         }
         else if (_loadingCards)
         {
@@ -79,201 +78,3 @@
         }
     </MudPaper>
 </MudOverlay>
-
-@code{
-    string _deckTextField = "";
-    string _deckName = "";
-    string _deckTooltip = "Total 0 prints, or 0 Pages with 0 cards on the last page.";
-
-    readonly string _deckTextFieldLabel = "Deck Text";
-    readonly string _deckTextFieldHelperText = "This is where you put your deck :)";
-    readonly string _deckTextFieldPlaceholderText = "1 Sol ring (C21) 263\n5 sol ring\nsol ring (C21)\nsol ring\n\n" +
-                                                    "You can also input an entire Moxfield Decklist. Any Export from " +
-                                                    "Moxfield or Archideckt SHOULD work, but if it doesn't please let me know :)\n\n" +
-                                                    "Now with tokens!!! This is news worth talking about, it took me much longer " +
-                                                    "to add that than you would think that it would.";
-    readonly string _deckNameLabel = "Deck Name";
-    readonly string _deckNameHelperText = "This is where you put the name of your deck :)";
-    readonly string _deckNamePlaceholderText = "A Really Cool, Really Awesome Deck Name";
-
-    string _blackCornersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
-    string _bordersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
-    string _printFlipCardsSeparateToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
-
-    bool _loadingCards;
-    float _loadingValue;
-    List<string> _currentCardList = new();
-    List<CardDto?> _cards = new();
-
-    readonly Exception _noCardException = new ("No card found");
-
-    bool _printFlipCardsSeparateToggle;
-    bool _blackCornersToggle;
-    bool _bordersToggle;
-    List<List<byte[]>> _cardPrintList = new();
-    List<string> _cardsFailedList = new();
-
-    bool _creatingDocument;
-
-    void OnCardUpdated(CardDto card)
-    {
-        var index = card.LineIndex;
-        var newLine = UpdateDeckList(card);
-        _currentCardList = _deckTextField
-            .Split("\n", StringSplitOptions.RemoveEmptyEntries)
-            .ToList();
-        if (card.Count == 0)
-        {
-            _currentCardList.RemoveAt(index);
-            _cards.Remove(card);
-            for (var i = index; i < _cards.Count; i++) if (_cards[i] is not null) _cards[i]!.LineIndex = i;
-        }
-        else
-        {
-            card.LineIndex = index;
-            _currentCardList[card.LineIndex] = newLine;
-        }
-
-        var tempDeckText = new StringBuilder();
-        foreach (var cardLine in _currentCardList) tempDeckText.Append(cardLine + "\n");
-        _deckTextField = tempDeckText.ToString();
-        UpdatePrintList();
-    }
-
-    async Task Load()
-    {
-        var tempDeckText = new StringBuilder();
-        _cardsFailedList.Clear();
-        _cards = new();
-        _currentCardList = _deckTextField
-            .Split("\n", StringSplitOptions.RemoveEmptyEntries)
-            .ToList();
-        _loadingCards = true;
-        StateHasChanged();
-        foreach (var cardLine in _currentCardList)
-        {
-            if (!DeckLineModel.TryParse(cardLine, out var cardModel))
-            {
-                Snackbar.Add($"Had an issue parsing line: {cardLine}", Severity.Error);
-            }
-            else
-            {
-                var queryStringBuilder = new StringBuilder();
-                try
-                {
-                    queryStringBuilder.Append($"!\"{cardModel.Name}\"");
-                    if (cardModel.SetCode != null) queryStringBuilder.Append($" set:\"{cardModel.SetCode}\"");
-                    if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:\"{cardModel.CollectorNumber}\"");
-                    var card = await CheckScryfall(queryStringBuilder.ToString());
-                    
-                    card.Count = cardModel.Count;
-                    card.LineIndex = _currentCardList.IndexOf(cardLine);
-                    if (card.CardFaces?[0].ImageUris != null)
-                    {
-                        card.PreLoadedCardImageBack = await HttpService.LoadCardImage(card.CardFaces[1].ImageUris.Png.ToString());
-                        card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.CardFaces[0].ImageUris.Png.ToString());
-                    }
-                    else card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
-                    if(card.TypeLine != null && (card.TypeLine.Contains("Token") || card.TypeLine.Contains("Card"))) card.IsToken = true;
-                    _cards.Add(card);
-                    tempDeckText.Append($"{UpdateDeckList(card)}\n");
-                    _loadingValue = 100f * _cards.Count / _currentCardList.Count;
-                    StateHasChanged();
-                    Snackbar.Add($"Successfully added card: {cardModel.Name}", Severity.Success);
-                }
-                catch (Exception e)
-                {
-                    _cardsFailedList.Add(cardLine);
-                    Snackbar.Add($"{e.Message} for line: {cardLine}", Severity.Error);
-                }
-            }
-        }
-        if(_cardsFailedList.Count > 0)
-        {
-            tempDeckText.Append("\nCard Lines Failed:\n");
-            foreach (var cardLine in _cardsFailedList) tempDeckText.Append($"{cardLine}\n");
-        }
-
-        UpdatePrintList();
-        _deckTextField = tempDeckText.ToString();
-        _loadingCards = false;
-        _loadingValue = 0;
-    }
-
-    string UpdateDeckList(CardDto card) => $"{card.Count} {card.Name} ({card.Set.ToUpperInvariant()}) {card.CollectorNumber}";
-
-    void UpdatePrintList()
-    {
-        _cardPrintList = new();
-        _cardPrintList.Add(new List<byte[]>());
-        _cardPrintList.Add(new List<byte[]>());
-        _cardPrintList.Add(new List<byte[]>());
-        foreach (var card in _cards)
-        {
-            for (var i = 0; i < card.Count; i++)
-            {
-                if (card.PreLoadedCardImageBack != null && _printFlipCardsSeparateToggle)
-                {
-                    _cardPrintList[1].Add(card.PreLoadedCardImageFront);
-                    _cardPrintList[2].Add(card.PreLoadedCardImageBack);
-                }
-                else
-                {
-                    _cardPrintList[0].Add(card.PreLoadedCardImageFront);
-                    if (card.PreLoadedCardImageBack != null) _cardPrintList[0].Add(card.PreLoadedCardImageBack);
-                }
-            }
-        }
-        if (_cardPrintList[0].Count != 0) _deckTooltip = $"Total {_cardPrintList[0].Count} prints, or {Math.Ceiling((double)_cardPrintList[0].Count / 9)} pages with {(_cardPrintList[0].Count - 1) % 9 + 1} cards on the last page. ";
-        if (_printFlipCardsSeparateToggle) _deckTooltip += $"{_cardPrintList[1].Count} flip cards, or {2 * Math.Ceiling((double)_cardPrintList[1].Count / 9)} pages with {(_cardPrintList[1].Count - 1) % 9 + 1} cards on the last two pages.";
-    }
-
-    async Task<CardDto> CheckScryfall(string query)
-    {
-        var cardList = await ScryfallService.GetCardsBySearchQuery(query);
-        return cardList?.Data[0] == null ? throw _noCardException : cardList.Data[0];
-    }
-
-    async Task Download()
-    {
-        _creatingDocument = true;
-        StateHasChanged();
-        await Task.Yield();
-        try
-        {
-            UpdatePrintList();
-            var pdfBytes = await QuestPdfService.CreatePdf(_cardPrintList, _blackCornersToggle, _bordersToggle, _printFlipCardsSeparateToggle);
-            using var stream = new MemoryStream(pdfBytes);
-            using var streamRef = new DotNetStreamReference(stream);
-            await Js.InvokeVoidAsync("downloadFileFromStream", _deckName.Equals("") ? "deck" : $"{_deckName}", streamRef);
-            Snackbar.Add("Yippie!! I did it!! :)", Severity.Success);
-        }
-        catch (Exception e)
-        {
-            Snackbar.Add("Your deck is probably too big, please try to cut it into smaller pieces :(", Severity.Error);
-        }
-        finally
-        { 
-            _creatingDocument = false;
-            StateHasChanged();
-        }
-    }
-
-    void BlackCornersToggle()
-    {
-        _blackCornersToggle = !_blackCornersToggle;
-        _blackCornersToggleIcon = _blackCornersToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
-    }
-
-    void BordersToggle()
-    {
-        _bordersToggle = !_bordersToggle;
-        _bordersToggleIcon = _bordersToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
-    }
-    void PrintFlipCardsSeparateToggle()
-    {
-        _printFlipCardsSeparateToggle = !_printFlipCardsSeparateToggle;
-        _printFlipCardsSeparateToggleIcon = _printFlipCardsSeparateToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
-        UpdatePrintList();
-    }
-}
