@@ -12,6 +12,7 @@ namespace MTGProxyApp.Components;
 
 public partial class Download(IWebHostEnvironment env, IJSRuntime Js) : ComponentBase
 {
+    [Parameter] public EventCallback OnFinished { get; set; }
     [Parameter] public required List<List<byte[]>> CardsPrints { get; set; }
     [Parameter] public string DeckName { get; set; } = "";
     [Parameter] public bool BlackCorners { get; set; }
@@ -24,6 +25,9 @@ public partial class Download(IWebHostEnvironment env, IJSRuntime Js) : Componen
     private int _cardsCompleted;
     private int _numPrints;
     private float _cardsPrintedValue;
+    private bool _started;
+
+    private string _loadingMessage = "Creating Pdf...";
 
     private const float CrossLength = 8f;
     private const float CrossThickness = 1f;
@@ -36,13 +40,23 @@ public partial class Download(IWebHostEnvironment env, IJSRuntime Js) : Componen
         _cardsPrintedValue = 0;
         foreach (var cardList in CardsPrints) foreach (var card in cardList) _numPrints++;
         await base.OnInitializedAsync();
-        var pdfBytes = await CreatePdf(CardsPrints, BlackCorners, Borders, PrintFlipCardsSeparate);
-        using var stream = new MemoryStream(pdfBytes);
-        using var streamRef = new DotNetStreamReference(stream);
-        await Js.InvokeVoidAsync("downloadFileFromStream", DeckName.Equals("") ? "deck" : $"{DeckName}", streamRef);    
+        StateHasChanged();
     }
 
-    private Task<byte[]> CreatePdf(List<List<byte[]>> cardsPrints, bool blackCorners, bool borders, bool printFlipCardsSeparate)
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _started) return;
+        _started = true;
+        var pdfBytes = await Task.Run(() => CreatePdf(CardsPrints, BlackCorners, Borders, PrintFlipCardsSeparate));
+        _loadingMessage = "Downloading Pdf...";
+        _ = InvokeAsync(StateHasChanged);
+        using var stream = new MemoryStream(pdfBytes);
+        using var streamRef = new DotNetStreamReference(stream);
+        await Js.InvokeVoidAsync("downloadFileFromStream", DeckName.Equals("") ? "deck" : $"{DeckName}", streamRef);
+        if (OnFinished.HasDelegate) await OnFinished.InvokeAsync();
+    }
+
+    private byte[] CreatePdf(List<List<byte[]>> cardsPrints, bool blackCorners, bool borders, bool printFlipCardsSeparate)
     {
         _numPrints = 0;
         _cardsCompleted = 0;
@@ -83,7 +97,10 @@ public partial class Download(IWebHostEnvironment env, IJSRuntime Js) : Componen
                 }
             }
         });
-        return Task.FromResult(doc.GeneratePdf());
+        _loadingMessage = "Rendering Pdf...";
+        using var pdfStream = new MemoryStream();
+        doc.GeneratePdf(pdfStream);
+        return pdfStream.ToArray();    
     }
 
     private Action<PageDescriptor> MakePage(List<byte[]> cards, bool blackCorners, bool borders)
@@ -130,8 +147,8 @@ public partial class Download(IWebHostEnvironment env, IJSRuntime Js) : Componen
                         });
                     });
                     _cardsCompleted++;
-                    _cardsPrintedValue = 100 * (_cardsCompleted / _numPrints);
-                    StateHasChanged();
+                    _cardsPrintedValue = 100f * _cardsCompleted / _numPrints;
+                    _ = InvokeAsync(StateHasChanged);
                 }
             });
         };

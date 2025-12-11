@@ -160,12 +160,6 @@ public partial class Home : ComponentBase
         var cardList = await ScryfallService.GetCardsBySearchQuery(query);
         return cardList?.Data[0] == null ? throw _noCardException : cardList.Data[0];
     }
-    async Task Download()
-    {
-        UpdatePrintList();
-        _creatingDocument = true;
-        _creatingDocument = false;
-    }
     void BlackCornersToggle()
     {
         _blackCornersToggle = !_blackCornersToggle;
@@ -182,10 +176,13 @@ public partial class Home : ComponentBase
         _printFlipCardsSeparateToggleIcon = _printFlipCardsSeparateToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
         UpdatePrintList();
     }
-    public void UpdateCardsPrintedValue(int cardsPrinted)
+    void OnDownloadFinished()
     {
-        int totalPrints = 0;
-        foreach (var cardList in _cardPrintList) foreach (var card in cardList) totalPrints++;
-        _cardsPrintedValue = 100 * (totalPrints / cardsPrinted);
+        _creatingDocument = false;
+    }
+    void DownloadStart()
+    {
+        UpdatePrintList();
+        _creatingDocument = true;
     }
 }

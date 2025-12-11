@@ -39,7 +39,7 @@
             </MudButton>
         </MudItem>
         <MudItem xs="12">
-            <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Download" Class="d-flex align-center justify-center mud-width-full py-8">Download</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@DownloadStart" Class="d-flex align-center justify-center mud-width-full py-8">Download</MudButton>
         </MudItem>
         <MudItem xs="12">
             <MudTextField @bind-Value="_deckTooltip" ReadOnly Label="Tooltip" Typo="Typo.body1" Variant="Variant.Outlined" Lines="1" HelperText="@_toolTipHelperText"/>
@@ -58,7 +58,7 @@
     <MudPaper Class="pa-6 d-flex flex-column align-center justify-center" Elevation="3">
         @if (_creatingDocument)
         {
-            <Download CardsPrints="_cardPrintList" BlackCorners="_blackCornersToggle" Borders="_bordersToggle" PrintFlipCardsSeparate="_printFlipCardsSeparateToggle" />
+            <Download CardsPrints="_cardPrintList" BlackCorners="_blackCornersToggle" Borders="_bordersToggle" PrintFlipCardsSeparate="_printFlipCardsSeparateToggle" OnFinished="@OnDownloadFinished" />
         }
         else if (_loadingCards)
         {

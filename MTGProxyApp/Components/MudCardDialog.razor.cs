@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MTGProxyApp.Dtos;
+
 using MudBlazor;
 
 namespace MTGProxyApp.Components;
