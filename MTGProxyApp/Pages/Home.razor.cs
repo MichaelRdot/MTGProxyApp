@@ -162,27 +162,9 @@ public partial class Home : ComponentBase
     }
     async Task Download()
     {
+        UpdatePrintList();
         _creatingDocument = true;
-        StateHasChanged();
-        await Task.Yield();
-        try
-        {
-            UpdatePrintList();
-            var pdfBytes = await QuestPdfService.CreatePdf(_cardPrintList, _blackCornersToggle, _bordersToggle, _printFlipCardsSeparateToggle);
-            using var stream = new MemoryStream(pdfBytes);
-            using var streamRef = new DotNetStreamReference(stream);
-            await Js.InvokeVoidAsync("downloadFileFromStream", _deckName.Equals("") ? "deck" : $"{_deckName}", streamRef);
-            Snackbar.Add("Yippie!! I did it!! :)", Severity.Success);
-        }
-        catch (Exception e)
-        {
-            Snackbar.Add("Your deck is probably too big, please try to cut it into smaller pieces :(", Severity.Error);
-        }
-        finally
-        { 
-            _creatingDocument = false;
-            StateHasChanged();
-        }
+        _creatingDocument = false;
     }
     void BlackCornersToggle()
     {

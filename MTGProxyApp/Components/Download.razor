@@ -1,5 +1,6 @@
-﻿<h3>Download</h3>
-
-@code {
-    
-}
+﻿<MudText Typo="Typo.h6">Creating PDF…</MudText>
+<MudProgressCircular Color="Color.Primary" Value="@_cardsPrintedValue" Max="100" Size="Size.Large">
+    <ChildContent>
+        <MudText Typo="Typo.subtitle2">@_cardsPrintedValue.ToString("0")%</MudText>
+    </ChildContent>
+</MudProgressCircular>

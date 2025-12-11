@@ -4,10 +4,8 @@
 @using MTGProxyApp.Services
 
 @inject ScryfallService ScryfallService
-@inject QuestPdfService QuestPdfService
 @inject HttpService HttpService
 @inject ISnackbar Snackbar
-@inject IJSRuntime Js
 
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudImage Fluid ObjectFit="ObjectFit.ScaleDown" ObjectPosition="ObjectPosition.Center" Src="Images/MichaelProxiesBanner.png"/>
@@ -60,12 +58,7 @@
     <MudPaper Class="pa-6 d-flex flex-column align-center justify-center" Elevation="3">
         @if (_creatingDocument)
         {
-            <MudText Typo="Typo.h6">Creating PDF…</MudText>
-            <MudProgressCircular Color="Color.Primary" Value="@_cardsPrintedValue" Max="100" Size="Size.Large">
-                <ChildContent>
-                    <MudText Typo="Typo.subtitle2">@_cardsPrintedValue.ToString("0")%</MudText>
-                </ChildContent>
-            </MudProgressCircular>
+            <Download CardsPrints="_cardPrintList" BlackCorners="_blackCornersToggle" Borders="_bordersToggle" PrintFlipCardsSeparate="_printFlipCardsSeparateToggle" />
         }
         else if (_loadingCards)
         {
