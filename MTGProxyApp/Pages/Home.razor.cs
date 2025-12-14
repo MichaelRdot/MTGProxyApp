@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MTGProxyApp.Dtos;
@@ -23,7 +24,11 @@ public partial class Home : ComponentBase
     readonly string _deckNameLabel = "Deck Name";
     readonly string _deckNameHelperText = "This is where you put the name of your deck :)";
     readonly string _deckNamePlaceholderText = "A Really Cool, Really Awesome Deck Name";
-
+    readonly string _allPageTitles = "Michael Proxies\n" +
+                                     "Michael does what?\n" +
+                                     ":)\n";
+    string _pageTitle = "";
+    bool _titleHasBeenChanged = false;
     string _blackCornersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
     string _bordersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
     string _printFlipCardsSeparateToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
@@ -184,5 +189,19 @@ public partial class Home : ComponentBase
     {
         UpdatePrintList();
         _creatingDocument = true;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!_titleHasBeenChanged)
+        {
+            var random = new Random();
+            var pageTitleList = _allPageTitles
+                .Split("\n", StringSplitOptions.RemoveEmptyEntries)
+                .ToList();
+            _pageTitle = pageTitleList[random.Next(0, pageTitleList.Count)];
+            _titleHasBeenChanged = true;
+            await base.OnInitializedAsync();
+        }
     }
 }

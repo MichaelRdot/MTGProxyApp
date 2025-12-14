@@ -1,25 +1,23 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <base href="/"/>
+        <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet"/>
+        <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet"/>
+        <ImportMap/>
+        <link rel="icon" type="image/png" href="Images/MichaelProxiesFavicon.png"/>
+        <HeadOutlet @rendermode="InteractiveServer"/>
+    </head>
 
-<head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <base href="/"/>
-    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet"/>
-    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet"/>
-    <ImportMap/>
-    <link rel="icon" type="image/png" href="MichaelProxiesFavicon.png"/>
-    <HeadOutlet @rendermode="InteractiveServer"/>
-</head>
-
-<body>
-    <MudThemeProvider IsDarkMode/>
-    <MudDialogProvider @rendermode="InteractiveServer"/>
-    <MudSnackbarProvider @rendermode="InteractiveServer"/>
-    <Routes @rendermode="InteractiveServer"/>
-    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-    <script src="_framework/blazor.web.js"></script>
-    <script src="download.js"></script>
-</body>
-
+    <body>
+        <MudThemeProvider IsDarkMode/>
+        <MudDialogProvider @rendermode="InteractiveServer"/>
+        <MudSnackbarProvider @rendermode="InteractiveServer"/>
+        <Routes @rendermode="InteractiveServer"/>
+        <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+        <script src="_framework/blazor.web.js"></script>
+        <script src="download.js"></script>
+    </body>
 </html>
