@@ -7,6 +7,7 @@
 @inject ScryfallService ScryfallService
 @inject HttpService HttpService
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudImage Fluid ObjectFit="ObjectFit.ScaleDown" ObjectPosition="ObjectPosition.Center" Src="Images/MichaelProxiesBanner.png"/>
@@ -14,15 +15,18 @@
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudGrid Justify="Justify.SpaceBetween">
         <MudItem xs="12">
-            <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@_deckTextFieldLabel"
-                          HelperText="@_deckTextFieldHelperText" Placeholder="@_deckTextFieldPlaceholderText"/>
+            <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@DeckTextFieldLabel"
+                          HelperText="@DeckTextFieldHelperText" Placeholder="@DeckTextFieldPlaceholderText"/>
         </MudItem>
-        <MudItem xs="12">
+        <MudItem xs="10">
             <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Load" Class="d-flex align-center justify-center mud-width-full py-8">Load</MudButton>
         </MudItem>
+        <MudItem xs="2">
+            <MudIconButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Upload" Class="d-flex align-center justify-center mud-width-full py-8" Icon="@Icons.Material.Filled.Upload"/>
+        </MudItem>
         <MudItem xs="12">
-            <MudTextField @bind-Value="_deckName" Variant="Variant.Outlined" Lines="1" Label="@_deckNameLabel"
-                          HelperText="@_deckNameHelperText" Placeholder="@_deckNamePlaceholderText"/>
+            <MudTextField @bind-Value="_deckName" Variant="Variant.Outlined" Lines="1" Label="@DeckNameLabel"
+                          HelperText="@DeckNameHelperText" Placeholder="@DeckNamePlaceholderText"/>
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudButton Variant="Variant.Filled" Color="Color.Dark" StartIcon="@_blackCornersToggleIcon"
@@ -43,7 +47,7 @@
             <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@DownloadStart" Class="d-flex align-center justify-center mud-width-full py-8">Download</MudButton>
         </MudItem>
         <MudItem xs="12">
-            <MudTextField @bind-Value="_deckTooltip" ReadOnly Label="Tooltip" Typo="Typo.body1" Variant="Variant.Outlined" Lines="1" HelperText="@_toolTipHelperText"/>
+            <MudTextField @bind-Value="_deckTooltip" ReadOnly Label="Tooltip" Typo="Typo.body1" Variant="Variant.Outlined" Lines="1" HelperText="@ToolTipHelperText"/>
         </MudItem>
     </MudGrid>
     <MudFlexBreak />
