@@ -63,7 +63,7 @@
     <MudPaper Class="pa-6 d-flex flex-column align-center justify-center" Elevation="3">
         @if (_creatingDocument)
         {
-            <Download CardsPrints="_cardPrintList" BlackCorners="_blackCornersToggle" Borders="_bordersToggle" PrintFlipCardsSeparate="_printFlipCardsSeparateToggle" OnFinished="@OnDownloadFinished" />
+            <Download CardsPrints="@_cardPrintList" BlackCorners="@_blackCornersToggle" DeckName="@_deckName" Borders="@_bordersToggle" PrintFlipCardsSeparate="@_printFlipCardsSeparateToggle" OnFinished="@OnDownloadFinished" />
         }
         else if (_loadingCards)
         {
