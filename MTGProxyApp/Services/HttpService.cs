@@ -14,24 +14,13 @@ public class HttpService
         _client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("MTGProxyApp", "1.0"));
     }
 
-    public async Task<T?> GetResponse<T>(Uri uri)
+    public async Task<T?> GetResponse<T>(Uri uri, CancellationToken ct = default)
     {
-        try
-        {
-            var response = _client.GetAsync(uri).Result;
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<T>(content);
-            }
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return default;
-        }
+        using var response = await _client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
+        response.EnsureSuccessStatusCode();
 
-        return default;
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        return await JsonSerializer.DeserializeAsync<T>(stream, cancellationToken: ct);
     }
 
     public async Task<byte[]> LoadCardImage(string cardImage)
