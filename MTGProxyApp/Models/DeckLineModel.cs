@@ -10,9 +10,8 @@ public record DeckLineModel(int Count, string Name, string? SetCode, string? Col
         result = null;
         if (string.IsNullOrWhiteSpace(line)) return false;
 
-        var tryMatch = Regex.Match(line.Trim(),
-            @"^\s*(?:(?<count>\d+)\s+)?(?<name>.+?)(?:\s+\((?<set>[A-Za-z0-9]{3,6})\)(?:\s+(?<num>[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)(?:★+)?)?(?:\s+(?:\*F\*|\*E\*))?)?\s*$"
-            ,
+        var tryMatch = Regex.Match(line.Trim(), 
+            @"^\s*(?:(?<count>\d+)\s*x?\s+)?(?<name>.+?)(?=\s+\([A-Za-z0-9]{3,6}\)\s+[A-Za-z0-9★-]+|\s+[A-Za-z](?:\s+\[[^\]]*\])?\s*$|\s*$)(?:\s+\((?<set>[A-Za-z0-9]{3,6})\)\s+(?<num>[A-Za-z0-9★-]+))?(?:\s+[A-Za-z])?(?:\s+\[[^\]]*\])?\s*$",
             RegexOptions.IgnorePatternWhitespace);
         if (!tryMatch.Success)
             return false;

@@ -2,6 +2,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using MTGProxyApp.Components;
 using MTGProxyApp.Dtos;
 using MTGProxyApp.Models;
 using MudBlazor;
@@ -10,46 +11,48 @@ namespace MTGProxyApp.Pages;
 
 public partial class Home : ComponentBase
 {
-        string _deckTextField = "";
-    string _deckName = "";
-    string _deckTooltip = "Total 0 prints, or 0 Pages with 0 cards on the last page.";
-    readonly string _toolTipHelperText = "This shows you the total number of cards that need to be printed with some other good information.";
-    readonly string _deckTextFieldLabel = "Deck Text";
-    readonly string _deckTextFieldHelperText = "This is where you put your deck :)";
-    readonly string _deckTextFieldPlaceholderText = "1 Sol ring (C21) 263\n5 sol ring\nsol ring (C21)\nsol ring\n\n" +
-                                                    "You can also input an entire Moxfield Decklist. Any Export from " +
-                                                    "Moxfield or Archideckt SHOULD work, but if it doesn't please let me know :)\n\n" +
-                                                    "Now with tokens!!! This is news worth talking about, it took me much longer " +
-                                                    "to add that than you would think that it would.";
-    readonly string _deckNameLabel = "Deck Name";
-    readonly string _deckNameHelperText = "This is where you put the name of your deck :)";
-    readonly string _deckNamePlaceholderText = "A Really Cool, Really Awesome Deck Name";
-    readonly string _allPageTitles = "Michael Proxies\n" +
-                                     "Michael does what?\n" +
-                                     ":)\n";
-    string _pageTitle = "";
-    bool _titleHasBeenChanged = false;
-    string _blackCornersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
-    string _bordersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
-    string _printFlipCardsSeparateToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
+    private string _deckTextField = "";
+    private string _deckName = "";
+    private string _deckTooltip = "Total 0 prints, or 0 Pages with 0 cards on the last page.";
+    private const string ToolTipHelperText = "This shows you the total number of cards that need to be printed with some other good information.";
+    private const string DeckTextFieldLabel = "Deck Text";
+    private const string DeckTextFieldHelperText = "This is where you put your deck :)";
+    private const string DeckTextFieldPlaceholderText = "1 Sol ring (C21) 263\n" +
+                                                        "5 sol ring\n" +
+                                                        "sol ring (C21)\n" +
+                                                        "sol ring\n\n" + 
+                                                        "You can also input an entire Moxfield Decklist. Any Export from " + 
+                                                        "Moxfield or Archideckt SHOULD work, but if it doesn't please let me know.\n\n" + 
+                                                        "Now with tokens!!! This is news worth talking about, it took me much longer " + 
+                                                        "to add that than you would think that it would.";
+    private const string DeckNameLabel = "Deck Name";
+    private const string DeckNameHelperText = "This is where you put the name of your deck :)";
+    private const string DeckNamePlaceholderText = "A Really Cool, Really Awesome Deck Name";
+    private const string AllPageTitles = "Michael Proxies\n" + 
+                                          "Michael does what?\n" + 
+                                          ":)\n";
+
+    private string _pageTitle = "";
+    private string _blackCornersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
+    private string _bordersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
+    private string _printFlipCardsSeparateToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
     
-    bool _loadingCards;
-    float _loadingValue;
-    List<string> _currentCardList = new();
-    List<CardDto?> _cards = new();
+    private bool _loadingCards;
+    private float _loadingValue;
+    private List<string> _currentCardList = [];
+    private List<CardDto?> _cards = [];
 
-    readonly Exception _noCardException = new ("No card found");
+    private readonly Exception _noCardException = new ("No card found");
 
-    bool _printFlipCardsSeparateToggle;
-    bool _blackCornersToggle;
-    bool _bordersToggle;
-    List<List<byte[]>> _cardPrintList = new();
-    List<string> _cardsFailedList = new();
+    private bool _printFlipCardsSeparateToggle;
+    private bool _blackCornersToggle;
+    private bool _bordersToggle;
+    private List<List<byte[]>> _cardPrintList = new();
+    private List<string> _cardsFailedList = new();
 
-    bool _creatingDocument;
-    float _cardsPrintedValue;
-
-    void OnCardUpdated(CardDto newCard)
+    private bool _creatingDocument;
+    private float _cardsPrintedValue;
+    private void OnCardUpdated(CardDto newCard)
     {
         var index = newCard.LineIndex;
         var newLine = UpdateDeckList(newCard);
@@ -74,7 +77,7 @@ public partial class Home : ComponentBase
         for (var i = 0; i < _cards.Count; i++) if (_cards[i].LineIndex == newCard.LineIndex) _cards[i] = newCard;
         UpdatePrintList();
     }
-    async Task Load()
+    private async Task Load()
     {
         var tempDeckText = new StringBuilder();
         _cardsFailedList.Clear();
@@ -134,8 +137,8 @@ public partial class Home : ComponentBase
         _loadingCards = false;
         _loadingValue = 0;
     }
-    string UpdateDeckList(CardDto card) => $"{card.Count} {card.Name} ({card.Set.ToUpperInvariant()}) {card.CollectorNumber}";
-    void UpdatePrintList()
+    private string UpdateDeckList(CardDto card) => $"{card.Count} {card.Name} ({card.Set.ToUpperInvariant()}) {card.CollectorNumber}";
+    private void UpdatePrintList()
     {
         _cardPrintList = new();
         _cardPrintList.Add(new List<byte[]>());
@@ -160,48 +163,50 @@ public partial class Home : ComponentBase
         if (_cardPrintList[0].Count != 0) _deckTooltip = $"Total {_cardPrintList[0].Count} prints, or {Math.Ceiling((double)_cardPrintList[0].Count / 9)} pages with {(_cardPrintList[0].Count - 1) % 9 + 1} cards on the last page. ";
         if (_printFlipCardsSeparateToggle) _deckTooltip += $"{_cardPrintList[1].Count} flip cards, or {2 * Math.Ceiling((double)_cardPrintList[1].Count / 9)} pages with {(_cardPrintList[1].Count - 1) % 9 + 1} cards on the last two pages.";
     }
-    async Task<CardDto> CheckScryfall(string query)
+    private async Task<CardDto> CheckScryfall(string query)
     {
         var cardList = await ScryfallService.GetCardsBySearchQuery(query);
         return cardList?.Data[0] == null ? throw _noCardException : cardList.Data[0];
     }
-    void BlackCornersToggle()
+    private void BlackCornersToggle()
     {
         _blackCornersToggle = !_blackCornersToggle;
         _blackCornersToggleIcon = _blackCornersToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
     }
-    void BordersToggle()
+    private void BordersToggle()
     {
         _bordersToggle = !_bordersToggle;
         _bordersToggleIcon = _bordersToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
     }
-    void PrintFlipCardsSeparateToggle()
+    private void PrintFlipCardsSeparateToggle()
     {
         _printFlipCardsSeparateToggle = !_printFlipCardsSeparateToggle;
         _printFlipCardsSeparateToggleIcon = _printFlipCardsSeparateToggle ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank;
         UpdatePrintList();
     }
-    void OnDownloadFinished()
+    private void OnDownloadFinished()
     {
         _creatingDocument = false;
     }
-    void DownloadStart()
+    private void DownloadStart()
     {
         UpdatePrintList();
         _creatingDocument = true;
     }
+    private async Task Upload()
+    { 
+        DialogOptions cardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, BackdropClick = true };
+        var dialog = await DialogService.ShowAsync<UploadDialog>("Please drag and drop a png or jpeg", cardDialogOptions);
+        var result = await dialog.Result;
 
-    protected override async Task OnInitializedAsync()
+    }
+    protected override void OnInitialized()
     {
-        if (!_titleHasBeenChanged)
-        {
-            var random = new Random();
-            var pageTitleList = _allPageTitles
-                .Split("\n", StringSplitOptions.RemoveEmptyEntries)
-                .ToList();
-            _pageTitle = pageTitleList[random.Next(0, pageTitleList.Count)];
-            _titleHasBeenChanged = true;
-            await base.OnInitializedAsync();
-        }
+        if (!RendererInfo.IsInteractive) return;
+        var random = new Random();
+        var pageTitleList = AllPageTitles
+            .Split("\n", StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
+        _pageTitle = pageTitleList[random.Next(0, pageTitleList.Count)];
     }
 }
