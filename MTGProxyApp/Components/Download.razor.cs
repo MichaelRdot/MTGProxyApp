@@ -43,7 +43,7 @@ public partial class Download(IWebHostEnvironment env, IJSRuntime Js) : Componen
         StateHasChanged();
     }
 
-    protected async override Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || _started) return;
         _started = true;
