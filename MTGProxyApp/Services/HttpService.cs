@@ -10,7 +10,7 @@ public class HttpService
     public HttpService(HttpClient client)
     {
         _client = client;
-        _client.DefaultRequestHeaders.Accept.Clear();
+        _client.DefaultRequestHeaders.Add("Accept", "application/json");
         _client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("MTGProxyApp", "1.0"));
     }
 
