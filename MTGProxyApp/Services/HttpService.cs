@@ -18,7 +18,16 @@ public class HttpService
     {
         try
         {
-            var response = _client.GetAsync(uri).Result;
+            var response = await _client.GetAsync(uri);
+
+            if ((int)response.StatusCode == 429)
+            {
+                var retryAfter = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(10);
+                Console.WriteLine($"Rate limited. Waiting {retryAfter.TotalSeconds}s before retry...");
+                await Task.Delay(retryAfter);
+                response = await _client.GetAsync(uri); 
+            }
+
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();

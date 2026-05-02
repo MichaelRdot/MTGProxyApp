@@ -102,7 +102,7 @@ public partial class Home : ComponentBase
                     if (cardModel.SetCode != null) queryStringBuilder.Append($" set:\"{cardModel.SetCode}\"");
                     if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:\"{cardModel.CollectorNumber}\"");
                     var card = await CheckScryfall(queryStringBuilder.ToString());
-                    
+                    await Task.Delay(100);
                     card.Count = cardModel.Count;
                     card.LineIndex = _currentCardList.IndexOf(cardLine);
                     card.Flip = card.CardFaces?[0].ImageUris != null;
