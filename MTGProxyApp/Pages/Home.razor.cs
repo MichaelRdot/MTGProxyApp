@@ -206,12 +206,9 @@ public partial class Home : ComponentBase
         DialogOptions cardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, BackdropClick = true };
         var dialog = await DialogService.ShowAsync<UploadDialog>("Upload Image", cardDialogOptions);
         var result = await dialog.Result;
-        if (result.Canceled || result.Data is not List<(string FileName, byte[] Data)> uploadedFiles) return;
-        foreach (var (fileName, data) in uploadedFiles)
+        if (result.Canceled || result.Data is not List<(string FileName, byte[] Data, string PreviewUrl)> uploadedFiles) return;
+        foreach (var (fileName, data, previewUrl) in uploadedFiles)
         {
-            var ext = Path.GetExtension(fileName).ToLowerInvariant();
-            var mime = ext == ".png" ? "image/png" : "image/jpeg";
-            var dataUri = $"data:{mime};base64,{Convert.ToBase64String(data)}";
             _cards.Add(new CardDto
             {
                 Name = Path.GetFileNameWithoutExtension(fileName),
@@ -220,7 +217,7 @@ public partial class Home : ComponentBase
                 Set = "",
                 CollectorNumber = "",
                 PreLoadedCardImageFront = data,
-                ImageUris = new CardDto.CardPngDto { Png = new Uri(dataUri) }
+                ImageUris = new CardDto.CardPngDto { Png = new Uri(previewUrl, UriKind.Relative) }
             });
         }
         UpdatePrintList();
