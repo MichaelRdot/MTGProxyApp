@@ -47,11 +47,10 @@ public partial class Home : ComponentBase
     private bool _printFlipCardsSeparateToggle;
     private bool _blackCornersToggle;
     private bool _bordersToggle;
-    private List<List<byte[]>> _cardPrintList = new();
+    private List<List<string>> _cardUrlList = new() { new(), new(), new() };
     private List<string> _cardsFailedList = new();
 
     private bool _creatingDocument;
-    private float _cardsPrintedValue;
     private void OnCardUpdated(CardDto newCard)
     {
         if (newCard.LineIndex == -1)
@@ -146,30 +145,36 @@ public partial class Home : ComponentBase
         _loadingValue = 0;
     }
     private string UpdateDeckList(CardDto card) => $"{card.Count} {card.Name} ({card.Set.ToUpperInvariant()}) {card.CollectorNumber}";
+    private string GetCardFrontUrl(CardDto card) =>
+        card.Flip
+            ? card.CardFaces![0].ImageUris?.Png?.ToString() ?? ""
+            : card.ImageUris?.Png?.ToString() ?? "";
+
+    private string GetCardBackUrl(CardDto card) =>
+        card.CardFaces?[1].ImageUris?.Png?.ToString() ?? "";
+
     private void UpdatePrintList()
     {
-        _cardPrintList = new();
-        _cardPrintList.Add(new List<byte[]>());
-        _cardPrintList.Add(new List<byte[]>());
-        _cardPrintList.Add(new List<byte[]>());
+        _cardUrlList = new() { new(), new(), new() };
         foreach (var card in _cards)
         {
             for (var i = 0; i < card.Count; i++)
             {
-                if (card.PreLoadedCardImageBack != null && _printFlipCardsSeparateToggle)
+                var frontUrl = GetCardFrontUrl(card);
+                if (card.Flip && _printFlipCardsSeparateToggle)
                 {
-                    _cardPrintList[1].Add(card.PreLoadedCardImageFront);
-                    _cardPrintList[2].Add(card.PreLoadedCardImageBack);
+                    _cardUrlList[1].Add(frontUrl);
+                    _cardUrlList[2].Add(GetCardBackUrl(card));
                 }
                 else
                 {
-                    _cardPrintList[0].Add(card.PreLoadedCardImageFront);
-                    if (card.PreLoadedCardImageBack != null) _cardPrintList[0].Add(card.PreLoadedCardImageBack);
+                    _cardUrlList[0].Add(frontUrl);
+                    if (card.Flip) _cardUrlList[0].Add(GetCardBackUrl(card));
                 }
             }
         }
-        if (_cardPrintList[0].Count != 0) _deckTooltip = $"Total {_cardPrintList[0].Count} prints, or {Math.Ceiling((double)_cardPrintList[0].Count / 9)} pages with {(_cardPrintList[0].Count - 1) % 9 + 1} cards on the last page. ";
-        if (_printFlipCardsSeparateToggle) _deckTooltip += $"{_cardPrintList[1].Count} flip cards, or {2 * Math.Ceiling((double)_cardPrintList[1].Count / 9)} pages with {(_cardPrintList[1].Count - 1) % 9 + 1} cards on the last two pages.";
+        if (_cardUrlList[0].Count != 0) _deckTooltip = $"Total {_cardUrlList[0].Count} prints, or {Math.Ceiling((double)_cardUrlList[0].Count / 9)} pages with {(_cardUrlList[0].Count - 1) % 9 + 1} cards on the last page. ";
+        if (_printFlipCardsSeparateToggle) _deckTooltip += $"{_cardUrlList[1].Count} flip cards, or {2 * Math.Ceiling((double)_cardUrlList[1].Count / 9)} pages with {(_cardUrlList[1].Count - 1) % 9 + 1} cards on the last two pages.";
     }
     private async Task<CardDto> CheckScryfall(string query)
     {
