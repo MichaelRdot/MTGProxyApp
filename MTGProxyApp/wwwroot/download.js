@@ -11,3 +11,8 @@
     anchorElement.remove();
     URL.revokeObjectURL(url);
 };
+
+window.triggerClick = (elementId) => {
+    const el = document.getElementById(elementId);
+    if (el) el.click();
+};

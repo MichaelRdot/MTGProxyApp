@@ -1,5 +1,29 @@
-﻿<MudDialog>
+@inject IJSRuntime JS
+
+<MudDialog>
     <DialogContent>
-        <MudText>Currently Unimplemented, please wait a little longer.</MudText>
+        <MudStack Row="true" Justify="Justify.Center" Spacing="4" Class="pa-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.InsertDriveFile"
+                       Disabled="@_loading"
+                       OnClick="@TriggerFilePickerAsync">
+                Upload File
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                       StartIcon="@Icons.Material.Filled.Folder"
+                       Disabled="@_loading"
+                       OnClick="@TriggerFolderPickerAsync">
+                Upload Folder
+            </MudButton>
+        </MudStack>
+        <InputFile id="fileInput" OnChange="@HandleFilesAsync" accept=".png,.jpg,.jpeg" style="display:none"/>
+        <InputFile id="folderInput" OnChange="@HandleFilesAsync" accept=".png,.jpg,.jpeg" @attributes="_folderAttributes" style="display:none"/>
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mt-2"/>
+        }
     </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@Close" Disabled="@_loading">Cancel</MudButton>
+    </DialogActions>
 </MudDialog>

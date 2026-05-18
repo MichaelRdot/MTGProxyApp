@@ -8,7 +8,11 @@
             <MudButton OnClick="@OpenArtPickerAsync">
                 <MudImage Src="@_cardImage" Fluid/>
             </MudButton>
-            <MudText Inline Align="Align.Left">Set:(@Card.Set.ToUpperInvariant()), Collector#:@Card.CollectorNumber, Count:@Card.Count</MudText>
+            <MudText Inline Align="Align.Left">
+                @(Card.OracleId != null
+                    ? $"Set:({Card.Set?.ToUpperInvariant()}), Collector#:{Card.CollectorNumber}, Count:{Card.Count}"
+                    : $"Custom Upload, Count:{Card.Count}")
+            </MudText>
             <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposurePlus1" OnClick="@Add"/>
             <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposureNeg1" OnClick="@Subtract"/>
         </MudCardContent>

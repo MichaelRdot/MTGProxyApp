@@ -54,6 +54,14 @@ public partial class Home : ComponentBase
     private float _cardsPrintedValue;
     private void OnCardUpdated(CardDto newCard)
     {
+        if (newCard.LineIndex == -1)
+        {
+            var idx = _cards.FindIndex(c => ReferenceEquals(c, newCard));
+            if (idx >= 0) _cards[idx] = newCard;
+            if (newCard.Count == 0) _cards.Remove(newCard);
+            UpdatePrintList();
+            return;
+        }
         var index = newCard.LineIndex;
         var newLine = UpdateDeckList(newCard);
         _currentCardList = _deckTextField
@@ -196,9 +204,27 @@ public partial class Home : ComponentBase
     private async Task Upload()
     { 
         DialogOptions cardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, BackdropClick = true };
-        var dialog = await DialogService.ShowAsync<UploadDialog>("Please drag and drop a png or jpeg", cardDialogOptions);
+        var dialog = await DialogService.ShowAsync<UploadDialog>("Upload Image", cardDialogOptions);
         var result = await dialog.Result;
-
+        if (result.Canceled || result.Data is not List<(string FileName, byte[] Data)> uploadedFiles) return;
+        foreach (var (fileName, data) in uploadedFiles)
+        {
+            var ext = Path.GetExtension(fileName).ToLowerInvariant();
+            var mime = ext == ".png" ? "image/png" : "image/jpeg";
+            var dataUri = $"data:{mime};base64,{Convert.ToBase64String(data)}";
+            _cards.Add(new CardDto
+            {
+                Name = Path.GetFileNameWithoutExtension(fileName),
+                Count = 1,
+                LineIndex = -1,
+                Set = "",
+                CollectorNumber = "",
+                PreLoadedCardImageFront = data,
+                ImageUris = new CardDto.CardPngDto { Png = new Uri(dataUri) }
+            });
+        }
+        UpdatePrintList();
+        StateHasChanged();
     }
     protected override void OnInitialized()
     {
