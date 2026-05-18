@@ -1,3 +1,4 @@
+using MTGProxyApp;
 using MTGProxyApp.Services;
 using MudBlazor;
 using MudBlazor.Services;
