@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -79,44 +80,45 @@ public partial class Download(IJSRuntime Js) : ComponentBase
 
     private string BuildPage(List<string?> cards)
     {
-        var corners = BlackCorners
-            ? """
-              <div class="corner tl"><div class="cross"></div></div>
-              <div class="corner tr"><div class="cross"></div></div>
-              <div class="corner bl"><div class="cross"></div></div>
-              <div class="corner br"><div class="cross"></div></div>
-              """
-            : "";
+      // Build 16 crosses directly on the page at each cut-line intersection
+      var crossHtml = new StringBuilder();
+      if (BlackCorners)
+      {
+        for (var row = 0; row <= 3; row++)
+        for (var col = 0; col <= 3; col++)
+          crossHtml.Append(
+            $"""<div class="cross" style="--r:{row};--c:{col};"></div>""");
+      }
 
-        var cardHtml = new StringBuilder();
-        for (var i = 0; i < 9; i++)
-        {
-            var url = i < cards.Count ? cards[i] : null;
-            var blackBg = BlackCorners && url != null ? " black-bg" : "";
-            var img = url != null ? $"""<img src="{url}" alt="">""" : "";
-            cardHtml.Append($"""
-                <div class="card{blackBg}">
-                  {corners}
-                  {img}
+      var cardHtml = new StringBuilder();
+      for (var i = 0; i < 9; i++)
+      {
+        var url = i < cards.Count ? cards[i] : null;
+        var blackBg = BlackCorners && url != null ? " black-bg" : "";
+        var img = url != null ? $"""<img src="{url}" alt="">""" : "";
+        cardHtml.Append($"""
+                         <div class="card{blackBg}">
+                           {img}
+                         </div>
+                         """);
+      }
+
+      return $"""
+              <div class="page">
+                <div class="hline hline-0"></div>
+                <div class="hline hline-1"></div>
+                <div class="hline hline-2"></div>
+                <div class="hline hline-3"></div>
+                <div class="vline vline-0"></div>
+                <div class="vline vline-1"></div>
+                <div class="vline vline-2"></div>
+                <div class="vline vline-3"></div>
+                {crossHtml}
+                <div class="sheet">
+                  {cardHtml}
                 </div>
-                """);
-        }
-
-        return $"""
-            <div class="page">
-              <div class="hline hline-0"></div>
-              <div class="hline hline-1"></div>
-              <div class="hline hline-2"></div>
-              <div class="hline hline-3"></div>
-              <div class="vline vline-0"></div>
-              <div class="vline vline-1"></div>
-              <div class="vline vline-2"></div>
-              <div class="vline vline-3"></div>
-              <div class="sheet">
-                {cardHtml}
               </div>
-            </div>
-            """;
+              """;
     }
 
     // Auto-print after all images finish loading (or immediately if no images).
@@ -178,11 +180,7 @@ public partial class Download(IJSRuntime Js) : ComponentBase
           height: var(--line);
           background: #000;
         }
-        .hline-0 { top: calc(var(--margin-v) + 0 * var(--card-h)); }
-        .hline-1 { top: calc(var(--margin-v) + 1 * var(--card-h)); }
-        .hline-2 { top: calc(var(--margin-v) + 2 * var(--card-h)); }
-        .hline-3 { top: calc(var(--margin-v) + 3 * var(--card-h)); }
-
+        
         .vline {
           position: absolute;
           top: 0;
@@ -190,10 +188,16 @@ public partial class Download(IJSRuntime Js) : ComponentBase
           width: var(--line);
           background: #000;
         }
-        .vline-0 { left: calc(var(--margin-h) + 0 * var(--card-w)); }
-        .vline-1 { left: calc(var(--margin-h) + 1 * var(--card-w)); }
-        .vline-2 { left: calc(var(--margin-h) + 2 * var(--card-w)); }
-        .vline-3 { left: calc(var(--margin-h) + 3 * var(--card-w)); }
+        
+        .hline-0 { top: calc(var(--margin-v) + 0 * var(--card-h) - var(--line) / 2); }
+        .hline-1 { top: calc(var(--margin-v) + 1 * var(--card-h) - var(--line) / 2); }
+        .hline-2 { top: calc(var(--margin-v) + 2 * var(--card-h) - var(--line) / 2); }
+        .hline-3 { top: calc(var(--margin-v) + 3 * var(--card-h) - var(--line) / 2); }
+        
+        .vline-0 { left: calc(var(--margin-h) + 0 * var(--card-w) - var(--line) / 2); }
+        .vline-1 { left: calc(var(--margin-h) + 1 * var(--card-w) - var(--line) / 2); }
+        .vline-2 { left: calc(var(--margin-h) + 2 * var(--card-w) - var(--line) / 2); }
+        .vline-3 { left: calc(var(--margin-h) + 3 * var(--card-w) - var(--line) / 2); }
 
         .sheet {
           position: absolute;
@@ -227,26 +231,33 @@ public partial class Download(IJSRuntime Js) : ComponentBase
         .corner.bl { bottom: 0; left: 0; }
         .corner.br { bottom: 0; right: 0; }
 
-        .cross { position: absolute; transform: translate(-50%, -50%); }
-
+        .cross {
+          position: absolute;
+          width: var(--cross-arm);
+          height: var(--cross-arm);
+          top:  calc(var(--margin-v) + var(--r) * var(--card-h) - var(--cross-arm) / 2);
+          left: calc(var(--margin-h) + var(--c) * var(--card-w) - var(--cross-arm) / 2);  
+          z-index: 2;
+        }
+        
         .cross::before {
           content: '';
           position: absolute;
           background: #fff;
           width: var(--cross-arm);
           height: var(--line);
-          top: 0;
-          left: calc(var(--cross-arm) / -2);
+          top: calc(50% - var(--line) / 2);
+          left: 0;
         }
-
+        
         .cross::after {
           content: '';
           position: absolute;
           background: #fff;
           width: var(--line);
           height: var(--cross-arm);
-          left: 0;
-          top: calc(var(--cross-arm) / -2);
+          left: calc(50% - var(--line) / 2);
+          top: 0;
         }
         """;
 }
