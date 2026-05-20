@@ -200,15 +200,22 @@ public class BulkDataService : BackgroundService
 
     private string MetadataPath => Path.Combine(_dataDirectory, MetadataFileName);
 
+    private static readonly JsonSerializerOptions CaseInsensitiveOptions = new() { PropertyNameCaseInsensitive = true };
+
     private BulkDataMetadata? LoadMetadata()
     {
-        if (!File.Exists(MetadataPath)) return null;
+        if (!File.Exists(MetadataPath))
+        {
+            _logger.LogInformation("No metadata file found at {Path}", MetadataPath);
+            return null;
+        }
         try
         {
-            return JsonSerializer.Deserialize<BulkDataMetadata>(File.ReadAllText(MetadataPath));
+            return JsonSerializer.Deserialize<BulkDataMetadata>(File.ReadAllText(MetadataPath), CaseInsensitiveOptions);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to deserialize metadata at {Path}", MetadataPath);
             return null;
         }
     }
