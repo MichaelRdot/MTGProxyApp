@@ -174,7 +174,7 @@ public class BulkDataService : BackgroundService
     private async Task<BulkDataItemDto?> GetAllCardsBulkItemAsync(CancellationToken ct)
     {
         using var client = _httpClientFactory.CreateClient();
-        client.DefaultRequestHeaders.Add("User-Agent", "MTGProxyApp/1.0");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("MTGProxyApp/1.0");
         using var response = await client.GetAsync(BulkDataApiUrl, ct);
         if (!response.IsSuccessStatusCode) return null;
 
