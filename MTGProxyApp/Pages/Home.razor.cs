@@ -17,14 +17,11 @@ public partial class Home : ComponentBase
     private const string ToolTipHelperText = "This shows you the total number of cards that need to be printed with some other good information.";
     private const string DeckTextFieldLabel = "Deck Text";
     private const string DeckTextFieldHelperText = "This is where you put your deck :)";
+
     private const string DeckTextFieldPlaceholderText = "1 Sol ring (C21) 263\n" +
                                                         "5 sol ring\n" +
                                                         "sol ring (C21)\n" +
-                                                        "sol ring\n\n" + 
-                                                        "You can also input an entire Moxfield Decklist. Any Export from " + 
-                                                        "Moxfield or Archideckt SHOULD work, but if it doesn't please let me know.\n\n" + 
-                                                        "Now with tokens!!! This is news worth talking about, it took me much longer " + 
-                                                        "to add that than you would think that it would.";
+                                                        "sol ring\n\n";
     private const string DeckNameLabel = "Deck Name";
     private const string DeckNameHelperText = "This is where you put the name of your deck :)";
     private const string DeckNamePlaceholderText = "A Really Cool, Really Awesome Deck Name";
@@ -208,7 +205,7 @@ public partial class Home : ComponentBase
     }
     private async Task Upload()
     { 
-        DialogOptions cardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, BackdropClick = true };
+        DialogOptions cardDialogOptions = new() { BackdropClick = true };
         var dialog = await DialogService.ShowAsync<UploadDialog>("Upload Image", cardDialogOptions);
         var result = await dialog.Result;
         if (result.Canceled || result.Data is not List<(string FileName, byte[] Data, string PreviewUrl)> uploadedFiles) return;
