@@ -1,28 +1,21 @@
-﻿using MTGProxyApp.Dtos;
+using MTGProxyApp.Dtos;
 
 namespace MTGProxyApp.Services;
 
-public class ScryfallService
+public class ScryfallService(BulkDataService bulkDataService)
 {
-    private readonly HttpClient _client;
-    private readonly HttpService _httpService;
-
-    public ScryfallService(HttpService httpService, HttpClient client)
+    public Task<List<CardDto>> SearchCards(string name, string? setCode, string? collectorNumber)
     {
-        _client = client;
-        _httpService = httpService;
-        _client.BaseAddress = new Uri("https://api.scryfall.com/cards/");
+        var cards = bulkDataService.SearchByName(name, setCode, collectorNumber);
+
+        if (cards.Count == 0)
+            cards = bulkDataService.SearchByName(name)
+                .Where(c => c.CardFaces == null)
+                .ToList();
+
+        return Task.FromResult(cards);
     }
 
-    public async Task<PaginatedListDto<CardDto?>?> GetCardsBySearchQuery(string searchQuery)
-    {
-        searchQuery = searchQuery.Replace($"{(char)92}{(char)34}", $"{(char)34}");
-        searchQuery = searchQuery.Replace(" ", "+");
-        var uri = new Uri($"{_client.BaseAddress}search?order=released&q={searchQuery}");
-        var cardList = await _httpService.GetResponse<PaginatedListDto<CardDto?>>(uri);
-        if (cardList?.Data is { Count: > 0 }) return cardList;
-        var uriBackup = new Uri($"{_client.BaseAddress}search?include_extras=true&order=released&q=-is:dfc+{searchQuery}");
-        cardList = await _httpService.GetResponse<PaginatedListDto<CardDto?>>(uriBackup);
-        return cardList ?? throw new Exception("Could not get anything from scryfall");
-    }
+    public Task<List<CardDto>> GetPrintsByOracleId(string oracleId) =>
+        Task.FromResult(bulkDataService.GetByOracleId(oracleId));
 }

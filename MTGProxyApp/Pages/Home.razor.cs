@@ -83,6 +83,11 @@ public partial class Home : ComponentBase
     }
     private async Task Load()
     {
+        if (!BulkDataService.IsReady)
+        {
+            Snackbar.Add($"Card data is not ready yet ({BulkDataService.Status}). Please wait and try again.", Severity.Warning);
+            return;
+        }
         var tempDeckText = new StringBuilder();
         _cardsFailedList.Clear();
         _cards = new();
@@ -99,14 +104,9 @@ public partial class Home : ComponentBase
             }
             else
             {
-                var queryStringBuilder = new StringBuilder();
                 try
                 {
-                    queryStringBuilder.Append($"!\"{cardModel.Name}\"");
-                    if (cardModel.SetCode != null) queryStringBuilder.Append($" set:\"{cardModel.SetCode}\"");
-                    if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:\"{cardModel.CollectorNumber}\"");
-                    var card = await CheckScryfall(queryStringBuilder.ToString());
-                    await Task.Delay(100);
+                    var card = await CheckScryfall(cardModel.Name, cardModel.SetCode, cardModel.CollectorNumber);
                     card.Count = cardModel.Count;
                     card.LineIndex = _currentCardList.IndexOf(cardLine);
                     card.Flip = card.CardFaces?[0].ImageUris != null;
@@ -173,10 +173,10 @@ public partial class Home : ComponentBase
         if (_cardUrlList[0].Count != 0) _deckTooltip = $"Total {_cardUrlList[0].Count} prints, or {Math.Ceiling((double)_cardUrlList[0].Count / 9)} pages with {(_cardUrlList[0].Count - 1) % 9 + 1} cards on the last page. ";
         if (_printFlipCardsSeparateToggle) _deckTooltip += $"{_cardUrlList[1].Count} flip cards, or {2 * Math.Ceiling((double)_cardUrlList[1].Count / 9)} pages with {(_cardUrlList[1].Count - 1) % 9 + 1} cards on the last two pages.";
     }
-    private async Task<CardDto> CheckScryfall(string query)
+    private async Task<CardDto> CheckScryfall(string name, string? setCode, string? collectorNumber)
     {
-        var cardList = await ScryfallService.GetCardsBySearchQuery(query);
-        return cardList?.Data[0] == null ? throw _noCardException : cardList.Data[0];
+        var cards = await ScryfallService.SearchCards(name, setCode, collectorNumber);
+        return cards.Count == 0 ? throw _noCardException : cards[0];
     }
     private void BlackCornersToggle()
     {
