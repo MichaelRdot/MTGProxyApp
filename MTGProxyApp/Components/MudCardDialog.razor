@@ -21,7 +21,7 @@
         </MudGrid>
     </DialogContent>
     <DialogActions>
-        @if (_paginatedCardList.NextPage != null)
+        @if (_paginatedCardList?.NextPage != null)
         {
             <MudIconButton OnClick="NextPage" Icon="@Icons.Material.Filled.KeyboardArrowRight"/>
         }
