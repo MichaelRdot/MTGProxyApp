@@ -2,11 +2,6 @@ using MTGProxyApp;
 using MTGProxyApp.Services;
 using MudBlazor;
 using MudBlazor.Services;
-using QuestPDF;
-using QuestPDF.Infrastructure;
-
-Settings.License = LicenseType.Community;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,7 +24,7 @@ builder.Services.AddMudServices(config =>
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<HttpService>();
 builder.Services.AddScoped<ScryfallService>();
-builder.Services.AddScoped<QuestPdfService>();
+builder.Services.AddSingleton<UploadedImageService>();
 
 
 var app = builder.Build();
@@ -46,6 +41,13 @@ if (!app.Environment.IsDevelopment())
 
 
 app.UseAntiforgery();
+
+app.MapGet("/upload-preview/{id}", (string id, UploadedImageService imageService) =>
+{
+    var img = imageService.Get(id);
+    if (img is null) return Results.NotFound();
+    return Results.Bytes(img.Value.Data, img.Value.MimeType);
+});
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
