@@ -162,6 +162,7 @@ public class BulkDataService : BackgroundService
     private async Task DownloadFileAsync(Uri uri, string destPath, CancellationToken ct)
     {
         using var client = _httpClientFactory.CreateClient();
+        client.Timeout = Timeout.InfiniteTimeSpan; // file is ~2 GB; cancellation is handled via ct
         using var response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
 
