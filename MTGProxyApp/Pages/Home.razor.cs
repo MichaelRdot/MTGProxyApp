@@ -109,7 +109,7 @@ public partial class Home : ComponentBase
             {
                 try
                 {
-                    var card = await CheckScryfall(cardModel.Name, cardModel.SetCode, cardModel.CollectorNumber);
+                    var card = CheckScryfall(cardModel.Name, cardModel.SetCode, cardModel.CollectorNumber);
                     card.Count = cardModel.Count;
                     card.LineIndex = _currentCardList.IndexOf(cardLine);
                     card.Flip = card.CardFaces?[0].ImageUris != null;
@@ -176,9 +176,9 @@ public partial class Home : ComponentBase
         if (_cardUrlList[0].Count != 0) _deckTooltip = $"Total {_cardUrlList[0].Count} prints, or {Math.Ceiling((double)_cardUrlList[0].Count / 9)} pages with {(_cardUrlList[0].Count - 1) % 9 + 1} cards on the last page. ";
         if (_printFlipCardsSeparateToggle) _deckTooltip += $"{_cardUrlList[1].Count} flip cards, or {2 * Math.Ceiling((double)_cardUrlList[1].Count / 9)} pages with {(_cardUrlList[1].Count - 1) % 9 + 1} cards on the last two pages.";
     }
-    private async Task<CardDto> CheckScryfall(string name, string? setCode, string? collectorNumber)
+    private CardDto CheckScryfall(string name, string? setCode, string? collectorNumber)
     {
-        var cards = await ScryfallService.SearchCards(name, setCode, collectorNumber, _filterOptions.Language, _filterOptions.HighresOnly);
+        var cards = ScryfallService.SearchCards(name, setCode, collectorNumber, _filterOptions.Language, _filterOptions.HighresOnly);
         return cards.Count == 0 ? throw _noCardException : cards[0].Clone();
     }
     private async Task OpenFilters()

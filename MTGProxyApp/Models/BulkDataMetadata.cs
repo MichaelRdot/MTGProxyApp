@@ -1,7 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace MTGProxyApp.Models;
 
 public class BulkDataMetadata
 {
-    public string FileName { get; set; } = "";
-    public DateTimeOffset UpdatedAt { get; set; }
+    [JsonPropertyName("FileName")] public string FileName { get; set; } = "";
+    [JsonPropertyName("UpdatedAt")] public DateTimeOffset UpdatedAt { get; set; }
 }

@@ -28,5 +28,8 @@ public class CardDto
         [JsonPropertyName("oracle_id")] public string? OracleId { get; set; }
     }
 
+    public string? EffectiveOracleId => OracleId ?? CardFaces?[0].OracleId;
+
+    // Shallow copy: caller must overwrite Count, LineIndex, Flip, and image fields after cloning
     public CardDto Clone() => (CardDto)MemberwiseClone();
 }

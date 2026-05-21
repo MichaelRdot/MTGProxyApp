@@ -21,9 +21,9 @@ public partial class MudCardDialog : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
-        var oracleId = Card.OracleId ?? Card.CardFaces?[0].OracleId;
+        var oracleId = Card.EffectiveOracleId;
         if (oracleId != null)
-            _cardList = await ScryfallService.GetPrintsByOracleId(oracleId, FilterOptions.Language, FilterOptions.HighresOnly);
+            _cardList = ScryfallService.GetPrintsByOracleId(oracleId, FilterOptions.Language, FilterOptions.HighresOnly);
         await base.OnInitializedAsync();
     }
 }

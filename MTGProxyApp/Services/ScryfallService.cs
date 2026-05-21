@@ -4,18 +4,20 @@ namespace MTGProxyApp.Services;
 
 public class ScryfallService(BulkDataService bulkDataService)
 {
-    public Task<List<CardDto>> SearchCards(string name, string? setCode, string? collectorNumber, string? lang = null, bool highresOnly = false)
+    public List<CardDto> SearchCards(string name, string? setCode, string? collectorNumber, string? lang = null, bool highresOnly = false)
     {
         var cards = bulkDataService.SearchByName(name, setCode, collectorNumber, lang, highresOnly);
 
+        // When set+collector yields nothing (e.g. promo variants), fall back to any non-MDFC print
+        // so the card still resolves rather than silently failing
         if (cards.Count == 0)
             cards = bulkDataService.SearchByName(name, lang: lang, highresOnly: highresOnly)
                 .Where(c => c.CardFaces == null)
                 .ToList();
 
-        return Task.FromResult(cards);
+        return cards;
     }
 
-    public Task<List<CardDto>> GetPrintsByOracleId(string oracleId, string? lang = null, bool highresOnly = false) =>
-        Task.FromResult(bulkDataService.GetByOracleId(oracleId, lang, highresOnly));
+    public List<CardDto> GetPrintsByOracleId(string oracleId, string? lang = null, bool highresOnly = false) =>
+        bulkDataService.GetByOracleId(oracleId, lang, highresOnly);
 }

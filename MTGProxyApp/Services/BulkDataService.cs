@@ -8,17 +8,20 @@ public class BulkDataService : BackgroundService
 {
     private const string BulkDataApiUrl = "https://api.scryfall.com/bulk-data";
     private const string AllCardsType = "all_cards";
-    private const string MetadataFileName = "metadata.json";
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<BulkDataService> _logger;
     private readonly string _dataDirectory;
+    private readonly string _metadataPath;
 
     private Dictionary<string, List<CardDto>> _nameIndex = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, List<CardDto>> _oracleIndex = new(StringComparer.OrdinalIgnoreCase);
 
-    public bool IsReady { get; private set; }
-    public string Status { get; private set; } = "Initializing…";
+    private volatile bool _isReady;
+    private volatile string _status = "Initializing…";
+
+    public bool IsReady => _isReady;
+    public string Status => _status;
 
     public BulkDataService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<BulkDataService> logger)
     {
@@ -26,6 +29,7 @@ public class BulkDataService : BackgroundService
         _logger = logger;
         _dataDirectory = configuration["BulkData:DataDirectory"] ?? "./bulk-data";
         Directory.CreateDirectory(_dataDirectory);
+        _metadataPath = Path.Combine(_dataDirectory, "metadata.json");
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -48,10 +52,10 @@ public class BulkDataService : BackgroundService
 
         if (bulkDataPath != null && File.Exists(bulkDataPath))
         {
-            Status = "Loading card data…";
+            _status = "Loading card data…";
             await BuildIndexesAsync(bulkDataPath, ct);
-            IsReady = true;
-            Status = "Ready";
+            _isReady = true;
+            _status = "Ready";
             _logger.LogInformation("Bulk data loaded from {Path}", bulkDataPath);
             _ = CheckForUpdateAsync(ct);
         }
@@ -88,11 +92,11 @@ public class BulkDataService : BackgroundService
     {
         try
         {
-            Status = "Fetching bulk data info…";
+            _status = "Fetching bulk data info…";
             var item = knownItem ?? await GetAllCardsBulkItemAsync(ct);
             if (item?.DownloadUri == null)
             {
-                Status = "Failed to retrieve bulk data info";
+                _status = "Failed to retrieve bulk data info";
                 _logger.LogError("Could not retrieve All Cards bulk data item from Scryfall");
                 return;
             }
@@ -101,17 +105,17 @@ public class BulkDataService : BackgroundService
             var newFileName = Path.GetFileName(item.DownloadUri.LocalPath);
             var newFilePath = Path.Combine(_dataDirectory, newFileName);
 
-            Status = "Downloading card data…";
+            _status = "Downloading card data…";
             _logger.LogInformation("Downloading bulk data from {Uri}", item.DownloadUri);
             await DownloadFileAsync(item.DownloadUri, newFilePath, ct);
 
-            Status = "Building card index…";
+            _status = "Building card index…";
             await BuildIndexesAsync(newFilePath, ct);
 
             if (oldMetadata != null)
             {
                 var oldPath = Path.Combine(_dataDirectory, oldMetadata.FileName);
-                if (File.Exists(oldPath) && oldPath != newFilePath)
+                if (oldPath != newFilePath)
                 {
                     File.Delete(oldPath);
                     _logger.LogInformation("Deleted old bulk data file: {Path}", oldPath);
@@ -119,13 +123,13 @@ public class BulkDataService : BackgroundService
             }
 
             SaveMetadata(new BulkDataMetadata { FileName = newFileName, UpdatedAt = item.UpdatedAt });
-            IsReady = true;
-            Status = "Ready";
+            _isReady = true;
+            _status = "Ready";
             _logger.LogInformation("Bulk data ready (updated {UpdatedAt})", item.UpdatedAt);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            Status = "Failed to download card data";
+            _status = "Failed to download card data";
             _logger.LogError(ex, "Failed to download and index bulk data");
         }
     }
@@ -144,7 +148,7 @@ public class BulkDataService : BackgroundService
                 newNameIndex[card.Name] = nameList = [];
             nameList.Add(card);
 
-            var oracleId = card.OracleId ?? card.CardFaces?[0].OracleId;
+            var oracleId = card.EffectiveOracleId;
             if (oracleId != null)
             {
                 if (!newOracleIndex.TryGetValue(oracleId, out var oracleList))
@@ -193,46 +197,42 @@ public class BulkDataService : BackgroundService
             result = result.Where(c => string.Equals(c.Set, setCode, StringComparison.OrdinalIgnoreCase));
         if (collectorNumber != null)
             result = result.Where(c => string.Equals(c.CollectorNumber, collectorNumber, StringComparison.OrdinalIgnoreCase));
-        if (lang != null)
-            result = result.Where(c => string.Equals(c.Lang, lang, StringComparison.OrdinalIgnoreCase));
-        if (highresOnly)
-            result = result.Where(c => c.HighresImage);
-        return [.. result];
+        return [.. ApplyFilters(result, lang, highresOnly)];
     }
 
     public List<CardDto> GetByOracleId(string oracleId, string? lang = null, bool highresOnly = false)
     {
         if (!_oracleIndex.TryGetValue(oracleId, out var cards)) return [];
-        var result = cards.AsEnumerable();
-        if (lang != null)
-            result = result.Where(c => string.Equals(c.Lang, lang, StringComparison.OrdinalIgnoreCase));
-        if (highresOnly)
-            result = result.Where(c => c.HighresImage);
-        return [.. result];
+        return [.. ApplyFilters(cards, lang, highresOnly)];
     }
 
-    private string MetadataPath => Path.Combine(_dataDirectory, MetadataFileName);
-
-    private static readonly JsonSerializerOptions CaseInsensitiveOptions = new() { PropertyNameCaseInsensitive = true };
+    private static IEnumerable<CardDto> ApplyFilters(IEnumerable<CardDto> source, string? lang, bool highresOnly)
+    {
+        if (lang != null)
+            source = source.Where(c => string.Equals(c.Lang, lang, StringComparison.OrdinalIgnoreCase));
+        if (highresOnly)
+            source = source.Where(c => c.HighresImage);
+        return source;
+    }
 
     private BulkDataMetadata? LoadMetadata()
     {
-        if (!File.Exists(MetadataPath))
-        {
-            _logger.LogInformation("No metadata file found at {Path}", MetadataPath);
-            return null;
-        }
         try
         {
-            return JsonSerializer.Deserialize<BulkDataMetadata>(File.ReadAllText(MetadataPath), CaseInsensitiveOptions);
+            return JsonSerializer.Deserialize<BulkDataMetadata>(File.ReadAllText(_metadataPath));
+        }
+        catch (FileNotFoundException)
+        {
+            _logger.LogDebug("No metadata file found at {Path}", _metadataPath);
+            return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to deserialize metadata at {Path}", MetadataPath);
+            _logger.LogError(ex, "Failed to deserialize metadata at {Path}", _metadataPath);
             return null;
         }
     }
 
     private void SaveMetadata(BulkDataMetadata metadata) =>
-        File.WriteAllText(MetadataPath, JsonSerializer.Serialize(metadata));
+        File.WriteAllText(_metadataPath, JsonSerializer.Serialize(metadata));
 }

@@ -24,7 +24,7 @@ public partial class MudCardCard : ComponentBase
 
     private async Task OpenArtPickerAsync()
     {
-        if (Card.OracleId == null && Card.CardFaces?[0].OracleId == null) return;
+        if (Card.EffectiveOracleId == null) return;
         var cardDialogParameters = new DialogParameters<MudCardDialog> { { d => d.Card, Card }, { d => d.FilterOptions, FilterOptions } };
         DialogOptions cardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, BackdropClick = true };
         var dialog = await DialogService.ShowAsync<MudCardDialog>($"{Card.Name}", cardDialogParameters, cardDialogOptions);
