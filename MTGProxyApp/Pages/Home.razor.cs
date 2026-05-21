@@ -27,7 +27,8 @@ public partial class Home : ComponentBase
     private const string DeckNamePlaceholderText = "A Really Cool, Really Awesome Deck Name";
     private const string AllPageTitles = "Michael Proxies\n" + 
                                           "Michael does what?\n" + 
-                                          ":)\n";
+                                          ":)\n" +
+                                          "Michael make card :)";
 
     private string _pageTitle = "";
     private string _blackCornersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
@@ -48,6 +49,8 @@ public partial class Home : ComponentBase
     private List<string> _cardsFailedList = new();
 
     private bool _creatingDocument;
+    private CardFilterOptions _filterOptions = new();
+    private bool FiltersActive => _filterOptions.Language != null || _filterOptions.HighresOnly;
     private void OnCardUpdated(CardDto newCard)
     {
         if (newCard.LineIndex == -1)
@@ -83,6 +86,11 @@ public partial class Home : ComponentBase
     }
     private async Task Load()
     {
+        if (!BulkDataService.IsReady)
+        {
+            Snackbar.Add($"Card data is not ready yet ({BulkDataService.Status}). Please wait and try again.", Severity.Warning);
+            return;
+        }
         var tempDeckText = new StringBuilder();
         _cardsFailedList.Clear();
         _cards = new();
@@ -99,14 +107,9 @@ public partial class Home : ComponentBase
             }
             else
             {
-                var queryStringBuilder = new StringBuilder();
                 try
                 {
-                    queryStringBuilder.Append($"!\"{cardModel.Name}\"");
-                    if (cardModel.SetCode != null) queryStringBuilder.Append($" set:\"{cardModel.SetCode}\"");
-                    if (cardModel.CollectorNumber != null) queryStringBuilder.Append($" cn:\"{cardModel.CollectorNumber}\"");
-                    var card = await CheckScryfall(queryStringBuilder.ToString());
-                    await Task.Delay(100);
+                    var card = CheckScryfall(cardModel.Name, cardModel.SetCode, cardModel.CollectorNumber);
                     card.Count = cardModel.Count;
                     card.LineIndex = _currentCardList.IndexOf(cardLine);
                     card.Flip = card.CardFaces?[0].ImageUris != null;
@@ -173,10 +176,19 @@ public partial class Home : ComponentBase
         if (_cardUrlList[0].Count != 0) _deckTooltip = $"Total {_cardUrlList[0].Count} prints, or {Math.Ceiling((double)_cardUrlList[0].Count / 9)} pages with {(_cardUrlList[0].Count - 1) % 9 + 1} cards on the last page. ";
         if (_printFlipCardsSeparateToggle) _deckTooltip += $"{_cardUrlList[1].Count} flip cards, or {2 * Math.Ceiling((double)_cardUrlList[1].Count / 9)} pages with {(_cardUrlList[1].Count - 1) % 9 + 1} cards on the last two pages.";
     }
-    private async Task<CardDto> CheckScryfall(string query)
+    private CardDto CheckScryfall(string name, string? setCode, string? collectorNumber)
     {
-        var cardList = await ScryfallService.GetCardsBySearchQuery(query);
-        return cardList?.Data[0] == null ? throw _noCardException : cardList.Data[0];
+        var cards = ScryfallService.SearchCards(name, setCode, collectorNumber, _filterOptions.Language, _filterOptions.HighresOnly);
+        return cards.Count == 0 ? throw _noCardException : cards[0].Clone();
+    }
+    private async Task OpenFilters()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var parameters = new DialogParameters<FilterDialog> { { d => d.Options, _filterOptions } };
+        var dialog = await DialogService.ShowAsync<FilterDialog>("Card Filters", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is CardFilterOptions updated)
+            _filterOptions = updated;
     }
     private void BlackCornersToggle()
     {
@@ -233,5 +245,20 @@ public partial class Home : ComponentBase
             .Split("\n", StringSplitOptions.RemoveEmptyEntries)
             .ToList();
         _pageTitle = pageTitleList[random.Next(0, pageTitleList.Count)];
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var browserLang = await JS.InvokeAsync<string?>("eval", "navigator.language");
+            var detected = FilterDialog.MapBrowserLanguage(browserLang);
+            if (detected != null)
+            {
+                _filterOptions = new CardFilterOptions { Language = detected };
+                StateHasChanged();
+            }
+        }
+        await base.OnAfterRenderAsync(firstRender);
     }
 }
