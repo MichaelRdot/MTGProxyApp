@@ -4,3 +4,4 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 **/bulk-data/metadata.json
+**/bulk-data/all-cards-*.json
