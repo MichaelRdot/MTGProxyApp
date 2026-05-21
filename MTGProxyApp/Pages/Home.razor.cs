@@ -27,7 +27,8 @@ public partial class Home : ComponentBase
     private const string DeckNamePlaceholderText = "A Really Cool, Really Awesome Deck Name";
     private const string AllPageTitles = "Michael Proxies\n" + 
                                           "Michael does what?\n" + 
-                                          ":)\n";
+                                          ":)\n" +
+                                          "Michael make card :)";
 
     private string _pageTitle = "";
     private string _blackCornersToggleIcon = Icons.Material.Filled.CheckBoxOutlineBlank;
