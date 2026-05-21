@@ -59,20 +59,20 @@ public partial class Download(IJSRuntime Js) : ComponentBase
 
         var css = CssTemplate.Replace("BORDER_VALUE", Borders ? "0.35mm" : "0px");
 
-        return $"""
+        return $$"""
             <!DOCTYPE html>
             <html lang="en">
             <head>
             <meta charset="UTF-8">
-            <title>Card Print Sheet</title>
-            <base href="{Nav.BaseUri}">
+            <title>{{(string.IsNullOrWhiteSpace(DeckName) ? "Deck" : DeckName)}}</title>
+            <base href="{{Nav.BaseUri}}">
             <style>
-            {css}
+            {{css}}
             </style>
-            {PrintScript}
+            {{PrintScript}}
             </head>
             <body>
-            {body}
+            {{body}}
             </body>
             </html>
             """;
