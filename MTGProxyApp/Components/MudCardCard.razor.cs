@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MTGProxyApp.Dtos;
+using MTGProxyApp.Models;
 using MudBlazor;
 
 namespace MTGProxyApp.Components;
@@ -9,6 +10,7 @@ public partial class MudCardCard : ComponentBase
     [Parameter] public required CardDto Card { get; set; }
     [Parameter] public EventCallback<CardDto> UpdatedCard { get; set; }
     [Parameter] public EventCallback<int> UpdateCardPosition { get; set; }
+    [Parameter] public CardFilterOptions FilterOptions { get; set; } = new();
 
     private string? _cardImage = "";
     private bool _mdfc;
@@ -22,7 +24,8 @@ public partial class MudCardCard : ComponentBase
 
     private async Task OpenArtPickerAsync()
     {
-        var cardDialogParameters = new DialogParameters { ["Card"] = Card };
+        if (Card.EffectiveOracleId == null) return;
+        var cardDialogParameters = new DialogParameters<MudCardDialog> { { d => d.Card, Card }, { d => d.FilterOptions, FilterOptions } };
         DialogOptions cardDialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, BackdropClick = true };
         var dialog = await DialogService.ShowAsync<MudCardDialog>($"{Card.Name}", cardDialogParameters, cardDialogOptions);
         var result = await dialog.Result;

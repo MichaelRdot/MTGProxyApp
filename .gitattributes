@@ -1,0 +1,2 @@
+# Track Scryfall bulk data files via Git LFS
+MTGProxyApp/bulk-data/all-cards-*.json filter=lfs diff=lfs merge=lfs -text

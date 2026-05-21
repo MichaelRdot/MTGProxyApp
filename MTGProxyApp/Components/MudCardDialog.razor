@@ -1,5 +1,4 @@
-﻿@using MTGProxyApp.Services
-@inject HttpService HttpService
+@using MTGProxyApp.Services
 @inject ScryfallService ScryfallService
 
 <MudDialog>
@@ -21,10 +20,6 @@
         </MudGrid>
     </DialogContent>
     <DialogActions>
-        @if (_paginatedCardList.NextPage != null)
-        {
-            <MudIconButton OnClick="NextPage" Icon="@Icons.Material.Filled.KeyboardArrowRight"/>
-        }
         <MudButton OnClick="Close">Close</MudButton>
     </DialogActions>
 </MudDialog>

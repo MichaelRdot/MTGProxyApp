@@ -1,28 +1,23 @@
-﻿using MTGProxyApp.Dtos;
+using MTGProxyApp.Dtos;
 
 namespace MTGProxyApp.Services;
 
-public class ScryfallService
+public class ScryfallService(BulkDataService bulkDataService)
 {
-    private readonly HttpClient _client;
-    private readonly HttpService _httpService;
-
-    public ScryfallService(HttpService httpService, HttpClient client)
+    public List<CardDto> SearchCards(string name, string? setCode, string? collectorNumber, string? lang = null, bool highresOnly = false)
     {
-        _client = client;
-        _httpService = httpService;
-        _client.BaseAddress = new Uri("https://api.scryfall.com/cards/");
+        var cards = bulkDataService.SearchByName(name, setCode, collectorNumber, lang, highresOnly);
+
+        // When set+collector yields nothing (e.g. promo variants), fall back to any non-MDFC print
+        // so the card still resolves rather than silently failing
+        if (cards.Count == 0)
+            cards = bulkDataService.SearchByName(name, lang: lang, highresOnly: highresOnly)
+                .Where(c => c.CardFaces == null)
+                .ToList();
+
+        return cards;
     }
 
-    public async Task<PaginatedListDto<CardDto?>?> GetCardsBySearchQuery(string searchQuery)
-    {
-        searchQuery = searchQuery.Replace($"{(char)92}{(char)34}", $"{(char)34}");
-        searchQuery = searchQuery.Replace(" ", "+");
-        var uri = new Uri($"{_client.BaseAddress}search?order=released&q={searchQuery}");
-        var cardList = await _httpService.GetResponse<PaginatedListDto<CardDto?>>(uri);
-        if (cardList?.Data is { Count: > 0 }) return cardList;
-        var uriBackup = new Uri($"{_client.BaseAddress}search?include_extras=true&order=released&q=-is:dfc+{searchQuery}");
-        cardList = await _httpService.GetResponse<PaginatedListDto<CardDto?>>(uriBackup);
-        return cardList ?? throw new Exception("Could not get anything from scryfall");
-    }
+    public List<CardDto> GetPrintsByOracleId(string oracleId, string? lang = null, bool highresOnly = false) =>
+        bulkDataService.GetByOracleId(oracleId, lang, highresOnly);
 }

@@ -11,6 +11,7 @@ public class CardDto
     public byte[]? PreLoadedCardImageBack { get; set; }
     public bool Flip { get; set; }
     [JsonPropertyName("set")] public string? Set { get; set; }
+    [JsonPropertyName("lang")] public string? Lang { get; set; }
     [JsonPropertyName("oracle_id")] public string? OracleId { get; set; }
 
     [JsonPropertyName("type_line")] public string? TypeLine { get; set; }
@@ -23,7 +24,12 @@ public class CardDto
 
     public class CardFaceDto
     {
-        [JsonPropertyName("image_uris")] public CardPngDto? ImageUris { get; set; } 
+        [JsonPropertyName("image_uris")] public CardPngDto? ImageUris { get; set; }
         [JsonPropertyName("oracle_id")] public string? OracleId { get; set; }
     }
+
+    public string? EffectiveOracleId => OracleId ?? CardFaces?[0].OracleId;
+
+    // Shallow copy: caller must overwrite Count, LineIndex, Flip, and image fields after cloning
+    public CardDto Clone() => (CardDto)MemberwiseClone();
 }

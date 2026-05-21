@@ -6,8 +6,10 @@
 
 @inject ScryfallService ScryfallService
 @inject HttpService HttpService
+@inject BulkDataService BulkDataService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject IJSRuntime JS
 
 <MudContainer MaxWidth="MaxWidth.Large">
     <MudImage Fluid ObjectFit="ObjectFit.ScaleDown" ObjectPosition="ObjectPosition.Center" Src="Images/MichaelProxiesBanner.png"/>
@@ -18,7 +20,10 @@
             <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@DeckTextFieldLabel"
                           HelperText="@DeckTextFieldHelperText" Placeholder="@DeckTextFieldPlaceholderText"/>
         </MudItem>
-        <MudItem xs="10">
+        <MudItem xs="2">
+            <MudIconButton Variant="Variant.Filled" Color="@(FiltersActive ? Color.Primary : Color.Dark)" OnClick="@OpenFilters" Class="d-flex align-center justify-center mud-width-full py-8" Icon="@Icons.Material.Filled.Tune" title="Card Filters"/>
+        </MudItem>
+        <MudItem xs="8">
             <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Load" Class="d-flex align-center justify-center mud-width-full py-8">Load</MudButton>
         </MudItem>
         <MudItem xs="2">
@@ -56,14 +61,14 @@
 <MudGrid Spacing="4" Justify="Justify.FlexStart">
     @foreach (var card in _cards)
     {
-        <MudCardCard Card="@card" UpdatedCard="OnCardUpdated" @key="card"/>
+        <MudCardCard Card="@card" UpdatedCard="OnCardUpdated" FilterOptions="@_filterOptions" @key="card"/>
     }
 </MudGrid>
 <MudOverlay Visible="@(_creatingDocument || _loadingCards)" DarkBackground>
     <MudPaper Class="pa-6 d-flex flex-column align-center justify-center" Elevation="3">
         @if (_creatingDocument)
         {
-            <Download CardsPrints="@_cardPrintList" BlackCorners="@_blackCornersToggle" DeckName="@_deckName" Borders="@_bordersToggle" PrintFlipCardsSeparate="@_printFlipCardsSeparateToggle" OnFinished="@OnDownloadFinished" />
+            <Download CardUrls="@_cardUrlList" BlackCorners="@_blackCornersToggle" DeckName="@_deckName" Borders="@_bordersToggle" PrintFlipCardsSeparate="@_printFlipCardsSeparateToggle" OnFinished="@OnDownloadFinished" />
         }
         else if (_loadingCards)
         {
