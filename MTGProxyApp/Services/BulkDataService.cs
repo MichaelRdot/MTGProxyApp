@@ -175,6 +175,7 @@ public class BulkDataService : BackgroundService
     {
         using var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.UserAgent.ParseAdd("MTGProxyApp/1.0");
+        client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
         using var response = await client.GetAsync(BulkDataApiUrl, ct);
         if (!response.IsSuccessStatusCode) return null;
 
