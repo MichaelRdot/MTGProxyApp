@@ -15,6 +15,15 @@ public class ScryfallService(BulkDataService bulkDataService)
                 .Where(c => c.CardFaces == null)
                 .ToList();
 
+        // Fall back to printed name (localized/non-English card names) when English name lookup fails
+        if (cards.Count == 0)
+            cards = bulkDataService.SearchByPrintedName(name, setCode, collectorNumber, lang, highresOnly);
+
+        if (cards.Count == 0)
+            cards = bulkDataService.SearchByPrintedName(name, lang: lang, highresOnly: highresOnly)
+                .Where(c => c.CardFaces == null)
+                .ToList();
+
         return cards;
     }
 
