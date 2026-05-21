@@ -200,8 +200,16 @@ public class BulkDataService : BackgroundService
         return [.. result];
     }
 
-    public List<CardDto> GetByOracleId(string oracleId) =>
-        _oracleIndex.TryGetValue(oracleId, out var cards) ? cards : [];
+    public List<CardDto> GetByOracleId(string oracleId, string? lang = null, bool highresOnly = false)
+    {
+        if (!_oracleIndex.TryGetValue(oracleId, out var cards)) return [];
+        var result = cards.AsEnumerable();
+        if (lang != null)
+            result = result.Where(c => string.Equals(c.Lang, lang, StringComparison.OrdinalIgnoreCase));
+        if (highresOnly)
+            result = result.Where(c => c.HighresImage);
+        return [.. result];
+    }
 
     private string MetadataPath => Path.Combine(_dataDirectory, MetadataFileName);
 

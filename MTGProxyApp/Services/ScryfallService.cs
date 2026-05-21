@@ -16,6 +16,6 @@ public class ScryfallService(BulkDataService bulkDataService)
         return Task.FromResult(cards);
     }
 
-    public Task<List<CardDto>> GetPrintsByOracleId(string oracleId) =>
-        Task.FromResult(bulkDataService.GetByOracleId(oracleId));
+    public Task<List<CardDto>> GetPrintsByOracleId(string oracleId, string? lang = null, bool highresOnly = false) =>
+        Task.FromResult(bulkDataService.GetByOracleId(oracleId, lang, highresOnly));
 }
