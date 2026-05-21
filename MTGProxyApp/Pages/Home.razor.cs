@@ -246,4 +246,19 @@ public partial class Home : ComponentBase
             .ToList();
         _pageTitle = pageTitleList[random.Next(0, pageTitleList.Count)];
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var browserLang = await JS.InvokeAsync<string?>("eval", "navigator.language");
+            var detected = FilterDialog.MapBrowserLanguage(browserLang);
+            if (detected != null)
+            {
+                _filterOptions = new CardFilterOptions { Language = detected };
+                StateHasChanged();
+            }
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
 }

@@ -39,6 +39,23 @@ public partial class FilterDialog : ComponentBase
         _highresOnly = Options.HighresOnly;
     }
 
+    internal static string? MapBrowserLanguage(string? browserLang)
+    {
+        if (string.IsNullOrEmpty(browserLang)) return null;
+
+        var lower = browserLang.ToLowerInvariant();
+        var primary = lower.Split('-')[0];
+
+        // Chinese needs special handling: zh-CN/zh-SG/zh-Hans → Simplified; zh-TW/zh-HK/zh-Hant → Traditional
+        if (primary == "zh")
+        {
+            if (lower.Contains("hant") || lower is "zh-tw" or "zh-hk" or "zh-mo") return "zht";
+            return "zhs";
+        }
+
+        return Languages.Any(l => l.Code == primary) ? primary : null;
+    }
+
     private void Apply() => MudDialog.Close(DialogResult.Ok(new CardFilterOptions
     {
         Language = _language,
