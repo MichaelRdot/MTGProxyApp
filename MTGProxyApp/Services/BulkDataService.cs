@@ -27,10 +27,18 @@ public class BulkDataService : BackgroundService
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _dataDirectory = configuration["BulkData:DataDirectory"] ?? "./bulk-data";
+        _dataDirectory = configuration["BulkData:DataDirectory"] ?? GetDefaultDataDirectory();
         Directory.CreateDirectory(_dataDirectory);
         _metadataPath = Path.Combine(_dataDirectory, "metadata.json");
+        _logger.LogInformation("Bulk data directory: {Directory}", _dataDirectory);
     }
+
+    // Azure App Service sets WEBSITE_INSTANCE_ID and mounts /home as persistent writable storage.
+    // The app package itself is read-only (WEBSITE_RUN_FROM_PACKAGE), so ./bulk-data would fail there.
+    private static string GetDefaultDataDirectory() =>
+        Environment.GetEnvironmentVariable("WEBSITE_INSTANCE_ID") != null
+            ? "/home/data/bulk-data"
+            : "./bulk-data";
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -167,12 +175,14 @@ public class BulkDataService : BackgroundService
     {
         using var client = _httpClientFactory.CreateClient();
         client.Timeout = Timeout.InfiniteTimeSpan; // file is ~2 GB; cancellation is handled via ct
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("MTGProxyApp/1.0");
         using var response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
 
         await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
         await using var fileStream = File.Create(destPath);
         await contentStream.CopyToAsync(fileStream, ct);
+        _logger.LogInformation("Download complete: {Path} ({Bytes} bytes)", destPath, new FileInfo(destPath).Length);
     }
 
     private async Task<BulkDataItemDto?> GetAllCardsBulkItemAsync(CancellationToken ct)
