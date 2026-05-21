@@ -23,7 +23,9 @@ public class CardDto
 
     public class CardFaceDto
     {
-        [JsonPropertyName("image_uris")] public CardPngDto? ImageUris { get; set; } 
+        [JsonPropertyName("image_uris")] public CardPngDto? ImageUris { get; set; }
         [JsonPropertyName("oracle_id")] public string? OracleId { get; set; }
     }
+
+    public CardDto Clone() => (CardDto)MemberwiseClone();
 }

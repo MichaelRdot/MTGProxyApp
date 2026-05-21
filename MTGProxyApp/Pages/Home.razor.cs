@@ -176,7 +176,7 @@ public partial class Home : ComponentBase
     private async Task<CardDto> CheckScryfall(string name, string? setCode, string? collectorNumber)
     {
         var cards = await ScryfallService.SearchCards(name, setCode, collectorNumber);
-        return cards.Count == 0 ? throw _noCardException : cards[0];
+        return cards.Count == 0 ? throw _noCardException : cards[0].Clone();
     }
     private void BlackCornersToggle()
     {
