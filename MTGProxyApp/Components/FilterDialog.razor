@@ -4,9 +4,9 @@
     <DialogContent>
         <MudStack Spacing="4">
             <MudSelect T="string?" Label="Language" @bind-Value="_language" Clearable="true" HelperText="Leave blank for any language">
-                @foreach (var (code, name) in Languages)
+                @foreach (var (langCode, langName) in Languages)
                 {
-                    <MudSelectItem T="string?" Value="@code">@($"{name} ({code})")</MudSelectItem>
+                    <MudSelectItem T="string?" Value="@langCode">@($"{langName} ({langCode})")</MudSelectItem>
                 }
             </MudSelect>
             <MudSwitch @bind-Value="_highresOnly" Label="High-res scans only" Color="Color.Primary"/>
