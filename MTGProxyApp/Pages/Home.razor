@@ -19,7 +19,10 @@
             <MudTextField @bind-Value="_deckTextField" Variant="Variant.Outlined" Lines="10" Label="@DeckTextFieldLabel"
                           HelperText="@DeckTextFieldHelperText" Placeholder="@DeckTextFieldPlaceholderText"/>
         </MudItem>
-        <MudItem xs="10">
+        <MudItem xs="2">
+            <MudIconButton Variant="Variant.Filled" Color="@(FiltersActive ? Color.Primary : Color.Dark)" OnClick="@OpenFilters" Class="d-flex align-center justify-center mud-width-full py-8" Icon="@Icons.Material.Filled.Tune" Title="Card Filters"/>
+        </MudItem>
+        <MudItem xs="8">
             <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@Load" Class="d-flex align-center justify-center mud-width-full py-8">Load</MudButton>
         </MudItem>
         <MudItem xs="2">

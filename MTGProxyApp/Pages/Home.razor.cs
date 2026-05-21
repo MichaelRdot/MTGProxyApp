@@ -49,6 +49,8 @@ public partial class Home : ComponentBase
     private List<string> _cardsFailedList = new();
 
     private bool _creatingDocument;
+    private CardFilterOptions _filterOptions = new();
+    private bool FiltersActive => _filterOptions.Language != null || _filterOptions.HighresOnly;
     private void OnCardUpdated(CardDto newCard)
     {
         if (newCard.LineIndex == -1)
@@ -176,8 +178,17 @@ public partial class Home : ComponentBase
     }
     private async Task<CardDto> CheckScryfall(string name, string? setCode, string? collectorNumber)
     {
-        var cards = await ScryfallService.SearchCards(name, setCode, collectorNumber);
+        var cards = await ScryfallService.SearchCards(name, setCode, collectorNumber, _filterOptions.Language, _filterOptions.HighresOnly);
         return cards.Count == 0 ? throw _noCardException : cards[0].Clone();
+    }
+    private async Task OpenFilters()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var parameters = new DialogParameters<FilterDialog> { { d => d.Options, _filterOptions } };
+        var dialog = await DialogService.ShowAsync<FilterDialog>("Card Filters", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is CardFilterOptions updated)
+            _filterOptions = updated;
     }
     private void BlackCornersToggle()
     {

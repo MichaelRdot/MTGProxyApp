@@ -1,0 +1,19 @@
+@using MTGProxyApp.Models
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="4">
+            <MudSelect T="string?" Label="Language" @bind-Value="_language" Clearable="true" HelperText="Leave blank for any language">
+                @foreach (var (code, name) in Languages)
+                {
+                    <MudSelectItem T="string?" Value="@code">@name (@code)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSwitch @bind-Value="_highresOnly" Label="High-res scans only" Color="Color.Primary"/>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Apply">Apply</MudButton>
+    </DialogActions>
+</MudDialog>

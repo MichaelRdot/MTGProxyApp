@@ -184,7 +184,7 @@ public class BulkDataService : BackgroundService
         return list?.Data.FirstOrDefault(d => d.Type == AllCardsType);
     }
 
-    public List<CardDto> SearchByName(string name, string? setCode = null, string? collectorNumber = null)
+    public List<CardDto> SearchByName(string name, string? setCode = null, string? collectorNumber = null, string? lang = null, bool highresOnly = false)
     {
         if (!_nameIndex.TryGetValue(name, out var cards)) return [];
 
@@ -193,6 +193,10 @@ public class BulkDataService : BackgroundService
             result = result.Where(c => string.Equals(c.Set, setCode, StringComparison.OrdinalIgnoreCase));
         if (collectorNumber != null)
             result = result.Where(c => string.Equals(c.CollectorNumber, collectorNumber, StringComparison.OrdinalIgnoreCase));
+        if (lang != null)
+            result = result.Where(c => string.Equals(c.Lang, lang, StringComparison.OrdinalIgnoreCase));
+        if (highresOnly)
+            result = result.Where(c => c.HighresImage);
         return [.. result];
     }
 
