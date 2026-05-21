@@ -3,4 +3,4 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
-**/bulk-data/
+**/bulk-data/metadata.json
