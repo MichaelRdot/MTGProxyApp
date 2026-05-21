@@ -20,6 +20,7 @@ public class CardDto
     [JsonPropertyName("image_uris")] public CardPngDto? ImageUris { get; set; }
     [JsonPropertyName("name")] public required string Name { get; set; }
     [JsonPropertyName("printed_name")] public string? PrintedName { get; set; }
+    [JsonPropertyName("flavor_name")] public string? FlavorName { get; set; }
     [JsonPropertyName("card_faces")] public CardFaceDto[]? CardFaces { get; set; }
     public class CardPngDto { [JsonPropertyName("png")] public Uri? Png { get; set; } }
 
@@ -28,6 +29,7 @@ public class CardDto
         [JsonPropertyName("image_uris")] public CardPngDto? ImageUris { get; set; }
         [JsonPropertyName("oracle_id")] public string? OracleId { get; set; }
         [JsonPropertyName("printed_name")] public string? PrintedName { get; set; }
+        [JsonPropertyName("flavor_name")] public string? FlavorName { get; set; }
     }
 
     public string? EffectiveOracleId => OracleId ?? CardFaces?[0].OracleId;
