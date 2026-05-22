@@ -32,8 +32,15 @@ public class CardDto
         [JsonPropertyName("flavor_name")] public string? FlavorName { get; set; }
     }
 
+    public Guid Id { get; private set; } = Guid.NewGuid();
+
     public string? EffectiveOracleId => OracleId ?? CardFaces?[0].OracleId;
 
     // Shallow copy: caller must overwrite Count, LineIndex, Flip, and image fields after cloning
-    public CardDto Clone() => (CardDto)MemberwiseClone();
+    public CardDto Clone()
+    {
+        var clone = (CardDto)MemberwiseClone();
+        clone.Id = Guid.NewGuid();
+        return clone;
+    }
 }

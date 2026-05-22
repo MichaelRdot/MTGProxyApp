@@ -61,7 +61,7 @@
 <MudGrid Spacing="4" Justify="Justify.FlexStart">
     @foreach (var card in _cards)
     {
-        <MudCardCard Card="@card" UpdatedCard="OnCardUpdated" FilterOptions="@_filterOptions" @key="card.LineIndex"/>
+        <MudCardCard Card="@card" UpdatedCard="OnCardUpdated" FilterOptions="@_filterOptions" @key="card.Id"/>
     }
 </MudGrid>
 <MudOverlay Visible="@(_creatingDocument || _loadingCards)" DarkBackground>
