@@ -32,10 +32,11 @@ public partial class MudCardCard : ComponentBase
         if (result.Canceled) return;
         if (result.Data is CardDto card)
         {
-            card.Count = Card.Count;
-            card.LineIndex = Card.LineIndex;
-            card.IsToken = Card.IsToken;
-            Card = card;
+            var newCard = card.Clone();
+            newCard.Count = Card.Count;
+            newCard.LineIndex = Card.LineIndex;
+            newCard.IsToken = Card.IsToken;
+            Card = newCard;
 
             Card.Flip = Card.CardFaces?[0].ImageUris != null;
             if (Card.Flip)
