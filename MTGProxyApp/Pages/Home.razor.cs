@@ -76,7 +76,8 @@ public partial class Home : ComponentBase
         {
             newCard.LineIndex = index;
             _currentCardList[newCard.LineIndex] = newLine;
-            for (var i = 0; i < _cards.Count; i++) if (_cards[i].LineIndex == newCard.LineIndex) _cards[i] = newCard;
+            var idx = _cards.FindIndex(c => c != null && c.LineIndex == newCard.LineIndex);
+            if (idx >= 0) _cards[idx] = newCard;
         }
 
         var tempDeckText = new StringBuilder();
@@ -99,8 +100,9 @@ public partial class Home : ComponentBase
             .ToList();
         _loadingCards = true;
         StateHasChanged();
-        foreach (var cardLine in _currentCardList)
+        for (var lineIdx = 0; lineIdx < _currentCardList.Count; lineIdx++)
         {
+            var cardLine = _currentCardList[lineIdx];
             if (!DeckLineModel.TryParse(cardLine, out var cardModel))
             {
                 Snackbar.Add($"Had an issue parsing line: {cardLine}", Severity.Error);
@@ -111,7 +113,7 @@ public partial class Home : ComponentBase
                 {
                     var card = CheckScryfall(cardModel.Name, cardModel.SetCode, cardModel.CollectorNumber);
                     card.Count = cardModel.Count;
-                    card.LineIndex = _currentCardList.IndexOf(cardLine);
+                    card.LineIndex = lineIdx;
                     card.Flip = card.CardFaces?[0].ImageUris != null;
                     if (card.Flip)
                     {
