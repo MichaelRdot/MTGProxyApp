@@ -93,7 +93,7 @@ public partial class Home : ComponentBase
         }
         var tempDeckText = new StringBuilder();
         _cardsFailedList.Clear();
-        _cards = new();
+        _cards = _cards.Where(c => c?.LineIndex == -1).ToList();
         _currentCardList = _deckTextField
             .Split("\n", StringSplitOptions.RemoveEmptyEntries)
             .ToList();

@@ -16,6 +16,8 @@ public class BulkDataService : BackgroundService
 
     private Dictionary<string, List<CardDto>> _nameIndex = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, List<CardDto>> _oracleIndex = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, List<CardDto>> _printedNameIndex = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, List<CardDto>> _flavorNameIndex = new(StringComparer.OrdinalIgnoreCase);
 
     private volatile bool _isReady;
     private volatile string _status = "Initializing…";
@@ -146,6 +148,8 @@ public class BulkDataService : BackgroundService
     {
         var newNameIndex = new Dictionary<string, List<CardDto>>(StringComparer.OrdinalIgnoreCase);
         var newOracleIndex = new Dictionary<string, List<CardDto>>(StringComparer.OrdinalIgnoreCase);
+        var newPrintedNameIndex = new Dictionary<string, List<CardDto>>(StringComparer.OrdinalIgnoreCase);
+        var newFlavorNameIndex = new Dictionary<string, List<CardDto>>(StringComparer.OrdinalIgnoreCase);
 
         await using var stream = File.OpenRead(filePath);
         await foreach (var card in JsonSerializer.DeserializeAsyncEnumerable<CardDto>(stream, cancellationToken: ct))
@@ -163,12 +167,30 @@ public class BulkDataService : BackgroundService
                     newOracleIndex[oracleId] = oracleList = [];
                 oracleList.Add(card);
             }
+
+            var printedName = card.PrintedName ?? card.CardFaces?[0].PrintedName;
+            if (printedName != null && !string.Equals(printedName, card.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!newPrintedNameIndex.TryGetValue(printedName, out var pnList))
+                    newPrintedNameIndex[printedName] = pnList = [];
+                pnList.Add(card);
+            }
+
+            var flavorName = card.FlavorName ?? card.CardFaces?[0].FlavorName;
+            if (flavorName != null)
+            {
+                if (!newFlavorNameIndex.TryGetValue(flavorName, out var fnList))
+                    newFlavorNameIndex[flavorName] = fnList = [];
+                fnList.Add(card);
+            }
         }
 
         _nameIndex = newNameIndex;
         _oracleIndex = newOracleIndex;
-        _logger.LogInformation("Indexed {NameCount} card names and {OracleCount} oracle IDs",
-            newNameIndex.Count, newOracleIndex.Count);
+        _printedNameIndex = newPrintedNameIndex;
+        _flavorNameIndex = newFlavorNameIndex;
+        _logger.LogInformation("Indexed {NameCount} card names, {OracleCount} oracle IDs, {PrintedNameCount} printed names, and {FlavorNameCount} flavor names",
+            newNameIndex.Count, newOracleIndex.Count, newPrintedNameIndex.Count, newFlavorNameIndex.Count);
     }
 
     private async Task DownloadFileAsync(Uri uri, string destPath, CancellationToken ct)
@@ -201,6 +223,30 @@ public class BulkDataService : BackgroundService
     public List<CardDto> SearchByName(string name, string? setCode = null, string? collectorNumber = null, string? lang = null, bool highresOnly = false)
     {
         if (!_nameIndex.TryGetValue(name, out var cards)) return [];
+
+        var result = cards.AsEnumerable();
+        if (setCode != null)
+            result = result.Where(c => string.Equals(c.Set, setCode, StringComparison.OrdinalIgnoreCase));
+        if (collectorNumber != null)
+            result = result.Where(c => string.Equals(c.CollectorNumber, collectorNumber, StringComparison.OrdinalIgnoreCase));
+        return [.. ApplyFilters(result, lang, highresOnly)];
+    }
+
+    public List<CardDto> SearchByFlavorName(string flavorName, string? setCode = null, string? collectorNumber = null, string? lang = null, bool highresOnly = false)
+    {
+        if (!_flavorNameIndex.TryGetValue(flavorName, out var cards)) return [];
+
+        var result = cards.AsEnumerable();
+        if (setCode != null)
+            result = result.Where(c => string.Equals(c.Set, setCode, StringComparison.OrdinalIgnoreCase));
+        if (collectorNumber != null)
+            result = result.Where(c => string.Equals(c.CollectorNumber, collectorNumber, StringComparison.OrdinalIgnoreCase));
+        return [.. ApplyFilters(result, lang, highresOnly)];
+    }
+
+    public List<CardDto> SearchByPrintedName(string printedName, string? setCode = null, string? collectorNumber = null, string? lang = null, bool highresOnly = false)
+    {
+        if (!_printedNameIndex.TryGetValue(printedName, out var cards)) return [];
 
         var result = cards.AsEnumerable();
         if (setCode != null)

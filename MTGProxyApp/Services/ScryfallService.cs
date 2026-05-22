@@ -15,6 +15,24 @@ public class ScryfallService(BulkDataService bulkDataService)
                 .Where(c => c.CardFaces == null)
                 .ToList();
 
+        // Fall back to flavor name (showcase/alternate art names like Godzilla, FF crossover, SLD alts)
+        if (cards.Count == 0)
+            cards = bulkDataService.SearchByFlavorName(name, setCode, collectorNumber, lang, highresOnly);
+
+        if (cards.Count == 0)
+            cards = bulkDataService.SearchByFlavorName(name, lang: lang, highresOnly: highresOnly)
+                .Where(c => c.CardFaces == null)
+                .ToList();
+
+        // Fall back to printed name (localized/non-English card names)
+        if (cards.Count == 0)
+            cards = bulkDataService.SearchByPrintedName(name, setCode, collectorNumber, lang, highresOnly);
+
+        if (cards.Count == 0)
+            cards = bulkDataService.SearchByPrintedName(name, lang: lang, highresOnly: highresOnly)
+                .Where(c => c.CardFaces == null)
+                .ToList();
+
         return cards;
     }
 
