@@ -76,12 +76,12 @@ public partial class Home : ComponentBase
         {
             newCard.LineIndex = index;
             _currentCardList[newCard.LineIndex] = newLine;
+            for (var i = 0; i < _cards.Count; i++) if (_cards[i].LineIndex == newCard.LineIndex) _cards[i] = newCard;
         }
 
         var tempDeckText = new StringBuilder();
         foreach (var cardLine in _currentCardList) tempDeckText.Append(cardLine + "\n");
         _deckTextField = tempDeckText.ToString();
-        for (var i = 0; i < _cards.Count; i++) if (_cards[i].LineIndex == newCard.LineIndex) _cards[i] = newCard;
         UpdatePrintList();
     }
     private async Task Load()
