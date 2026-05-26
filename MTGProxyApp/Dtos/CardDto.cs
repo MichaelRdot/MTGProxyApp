@@ -11,8 +11,14 @@ public class CardDto
     public byte[]? PreLoadedCardImageBack { get; set; }
     public bool Flip { get; set; }
     [JsonPropertyName("set")] public string? Set { get; set; }
+    [JsonPropertyName("set_name")] public string? SetName { get; set; }
     [JsonPropertyName("lang")] public string? Lang { get; set; }
     [JsonPropertyName("oracle_id")] public string? OracleId { get; set; }
+    [JsonPropertyName("illustration_id")] public string? IllustrationId { get; set; }
+    [JsonPropertyName("artist")] public string? Artist { get; set; }
+    [JsonPropertyName("frame")] public string? Frame { get; set; }
+    [JsonPropertyName("finishes")] public string[]? Finishes { get; set; }
+    [JsonPropertyName("released_at")] public string? ReleasedAt { get; set; }
 
     [JsonPropertyName("type_line")] public string? TypeLine { get; set; }
     [JsonPropertyName("collector_number")] public string? CollectorNumber { get; set; }

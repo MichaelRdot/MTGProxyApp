@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography;
-using System.Text;
+﻿using System.Text;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MTGProxyApp.Components;
@@ -51,6 +50,39 @@ public partial class Home : ComponentBase
     private bool _creatingDocument;
     private CardFilterOptions _filterOptions = new();
     private bool FiltersActive => _filterOptions.Language != null || _filterOptions.HighresOnly;
+    private void OnCardSplit(CardSplitResult result)
+    {
+        var cardIdx = _cards.FindIndex(c => c?.Id == result.OriginalCardId);
+        if (cardIdx < 0) return;
+
+        var originalCard = _cards[cardIdx];
+        var splitCard = result.SplitCard;
+        var originalLineIndex = originalCard?.LineIndex ?? -1;
+
+        if (originalLineIndex >= 0)
+        {
+            var insertAt = originalLineIndex + 1;
+
+            // Shift all deck-backed cards that sit after the insertion point
+            foreach (var c in _cards)
+                if (c?.LineIndex >= insertAt) c.LineIndex++;
+
+            splitCard.LineIndex = insertAt;
+
+            _currentCardList = _deckTextField
+                .Split("\n", StringSplitOptions.RemoveEmptyEntries)
+                .ToList();
+            _currentCardList.Insert(insertAt, UpdateDeckList(splitCard));
+
+            var sb = new StringBuilder();
+            foreach (var line in _currentCardList) sb.Append(line + "\n");
+            _deckTextField = sb.ToString();
+        }
+
+        _cards.Insert(cardIdx + 1, splitCard);
+        UpdatePrintList();
+    }
+
     private void OnCardUpdated(CardDto newCard)
     {
         if (newCard.LineIndex == -1)

@@ -3,7 +3,84 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText>Select your chosen card art.</MudText>
+        <MudText Class="mb-3">Select your chosen card art.</MudText>
+
+        <MudPaper Class="pa-3 mb-3" Elevation="0" Outlined="true">
+            <MudGrid Spacing="2">
+                <MudItem xs="6" sm="3" md="2">
+                    <FilterPicker Label="Set"
+                                  Items="_availableSets"
+                                  FormatDisplay="GetSetDisplay"
+                                  FilterState="_setFilter"
+                                  FilterStateChanged="OnSetFilterChanged" />
+                </MudItem>
+                <MudItem xs="6" sm="3" md="2">
+                    <FilterPicker Label="Artist"
+                                  Items="_availableArtists"
+                                  FilterState="_artistFilter"
+                                  FilterStateChanged="OnArtistFilterChanged" />
+                </MudItem>
+                <MudItem xs="6" sm="3" md="2">
+                    <FilterPicker Label="Frame"
+                                  Items="_availableFrames"
+                                  FormatDisplay="FormatFrameName"
+                                  FilterState="_frameFilter"
+                                  FilterStateChanged="OnFrameFilterChanged" />
+                </MudItem>
+                <MudItem xs="6" sm="3" md="2">
+                    <FilterPicker Label="Finish"
+                                  Items="_availableFinishes"
+                                  FormatDisplay="FormatFinishName"
+                                  FilterState="_finishFilter"
+                                  FilterStateChanged="OnFinishFilterChanged" />
+                </MudItem>
+                <MudItem xs="12" sm="12" md="4">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudSelect T="string" Label="Sort By"
+                                   Value="_sortBy" ValueChanged="OnSortByChanged"
+                                   Dense="true" Class="flex-grow-1">
+                            <MudSelectItem T="string" Value="@("released_at")">Release Date</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("artist")">Artist Name</MudSelectItem>
+                        </MudSelect>
+                        <MudTooltip Text="@(_sortAscending ? "Ascending" : "Descending")">
+                            <MudIconButton Icon="@(_sortAscending ? Icons.Material.Filled.ArrowUpward : Icons.Material.Filled.ArrowDownward)"
+                                           OnClick="ToggleSortDirection"
+                                           Size="Size.Small" />
+                        </MudTooltip>
+                        <MudButton Variant="Variant.Text"
+                                   OnClick="ClearAllFilters"
+                                   Disabled="!HasActiveFilters">Clear All</MudButton>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+
+            <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center" Class="mt-2">
+                <MudText Typo="Typo.body2" Class="mr-1">Art Tags:</MudText>
+                @foreach (var tag in _artTags)
+                {
+                    <MudChip T="string" Text="@tag" Color="Color.Primary" Size="Size.Small"
+                             OnClose="RemoveArtTagChip" />
+                }
+                @if (_isLoadingTags)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="ml-1" />
+                }
+                <MudTextField T="string" Value="_artTagInput" ValueChanged="OnTagValueChanged"
+                              Placeholder="@(_artTags.Count == 0 ? "Type a Scryfall art tag and press Enter…" : "Add another tag…")"
+                              Variant="Variant.Text" Dense="true" Immediate="true"
+                              TextUpdateSuppression="false"
+                              OnKeyDown="OnTagInputKeyDown"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Filled.Add"
+                              OnAdornmentClick="@(_ => AddArtTagAsync())"
+                              Style="min-width:180px;flex:1" />
+            </MudStack>
+        </MudPaper>
+
+        <MudText Typo="Typo.caption" Class="mb-2">
+            Showing @_cardList.Count of @_allCards.Count prints
+        </MudText>
+
         <MudGrid Spacing="4" Justify="Justify.FlexStart">
             @foreach (var card in _cardList)
             {
@@ -11,7 +88,7 @@
                     <MudCard Outlined="true">
                         <MudCardContent>
                             <MudButton @onclick="@(() => SelectArt(card))">
-                                <MudImage Src="@GetImageUrl(card)" Fluid/>
+                                <MudImage Src="@GetImageUrl(card)" Fluid />
                             </MudButton>
                         </MudCardContent>
                     </MudCard>

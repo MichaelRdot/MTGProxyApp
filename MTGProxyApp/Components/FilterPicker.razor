@@ -1,0 +1,54 @@
+@using MTGProxyApp.Models
+
+<MudMenu Dense="true" AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
+    <ActivatorContent>
+        <MudButton Variant="Variant.Outlined" FullWidth="true"
+                   EndIcon="@Icons.Material.Filled.ArrowDropDown"
+                   Color="@(HasActive ? Color.Primary : Color.Default)"
+                   Size="Size.Small">
+            @ButtonLabel
+        </MudButton>
+    </ActivatorContent>
+    <ChildContent>
+        @if (HasActive)
+        {
+            <MudMenuItem AutoClose="false" OnClick="ClearFilter">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.FilterAltOff" Size="Size.Small" />
+                    <MudText>Clear filter</MudText>
+                </MudStack>
+            </MudMenuItem>
+            <MudDivider />
+        }
+        @if (Items.Count == 0)
+        {
+            <MudMenuItem Disabled="true">No options available</MudMenuItem>
+        }
+        else
+        {
+            @foreach (var item in Items)
+            {
+                var mode = GetMode(item);
+                <MudMenuItem AutoClose="false" OnClick="@(() => ToggleItem(item))">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        @if (mode == FilterMode.Include)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                        }
+                        else if (mode == FilterMode.Exclude)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.RadioButtonUnchecked" Color="Color.Default" Size="Size.Small" />
+                        }
+                        <MudText Style="@(mode == FilterMode.Exclude ? "text-decoration: line-through; opacity: 0.6" : "")">
+                            @(FormatDisplay?.Invoke(item) ?? item)
+                        </MudText>
+                    </MudStack>
+                </MudMenuItem>
+            }
+        }
+    </ChildContent>
+</MudMenu>
