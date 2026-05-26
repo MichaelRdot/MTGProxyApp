@@ -183,10 +183,7 @@ public partial class MudCardDialog : ComponentBase
             _isLoadingTags = true;
             StateHasChanged();
 
-            var oracleId = Card.EffectiveOracleId;
-            _artTagCache[tag] = oracleId != null
-                ? await ScryfallService.GetIllustrationIdsByArtTagAsync(oracleId, tag)
-                : [];
+            _artTagCache[tag] = await ScryfallService.GetIllustrationIdsByArtTagAsync(tag);
 
             _isLoadingTags = false;
         }
