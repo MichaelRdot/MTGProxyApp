@@ -1,18 +1,54 @@
-﻿@using MTGProxyApp.Services
+@using MTGProxyApp.Services
+@using MTGProxyApp.Dtos
 @inject IDialogService DialogService
 @inject HttpService HttpService
 
 <MudItem xs="12" sm="6" md="4" lg="3" xl="2" xxl="1">
     <MudCard Outlined="true">
-        <MudCardContent>
-            <MudButton OnClick="@OpenArtPickerAsync">
-                <MudImage Src="@_cardImage" Fluid/>
+        <MudCardContent Class="pa-1 pb-0">
+            <MudButton OnClick="@OpenArtPickerAsync" FullWidth Variant="Variant.Text"
+                       Style="padding: 0; min-height: unset; display: block; text-transform: none;">
+                <MudImage Src="@_cardImage" Fluid Class="d-block" Style="border-radius: 4px;"/>
             </MudButton>
-            <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposureNeg1" OnClick="@Subtract"/>
-            <MudText Inline Align="Align.Left">
-                @($"{Card.Count}")
-            </MudText>
-            <MudIconButton Variant="Variant.Filled" Icon="@Icons.Material.Filled.ExposurePlus1" OnClick="@Add"/>
         </MudCardContent>
+        <MudCardActions Class="pa-2 pt-1">
+            <MudStack Row AlignItems="AlignItems.Center" Class="mud-width-full" Spacing="1">
+                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                               Variant="Variant.Filled" Color="Color.Dark" Size="Size.Small"
+                               OnClick="@Subtract" Style="flex-shrink: 0;"/>
+                @if (_isEditingCount)
+                {
+                    <MudNumericField @ref="_countField" T="int" @bind-Value="_editCount"
+                                     Min="0" Max="999"
+                                     HideSpinButtons="true"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Style="width: 3.5rem; flex-shrink: 0;"
+                                     OnBlur="@OnCountFieldBlur"
+                                     OnKeyDown="@HandleCountKeyDown"/>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small"
+                               OnClick="@StartCountEdit"
+                               Style="min-width: 2.5rem; padding: 0 6px; font-weight: 700; font-size: 0.95rem; flex-shrink: 0;"
+                               title="Click to edit count">
+                        @Card.Count
+                    </MudButton>
+                }
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               Variant="Variant.Filled" Color="Color.Dark" Size="Size.Small"
+                               OnClick="@Add" Style="flex-shrink: 0;"/>
+                <MudSpacer/>
+                <MudButton StartIcon="@Icons.Material.Filled.CallSplit"
+                           Variant="Variant.Outlined" Size="Size.Small" Color="Color.Primary"
+                           OnClick="@OpenSplitDialogAsync"
+                           Disabled="@(Card.Count <= 1)"
+                           Style="flex-shrink: 0; min-width: 0; padding: 0 8px;"
+                           title="@(Card.Count <= 1 ? "Need 2+ copies to split" : "Split into two independent groups")">
+                    Split
+                </MudButton>
+            </MudStack>
+        </MudCardActions>
     </MudCard>
 </MudItem>

@@ -1,0 +1,26 @@
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.body2">
+                Splitting <strong>@CardName</strong> &mdash; currently <strong>@MaxCount</strong> copies.
+            </MudText>
+            <MudNumericField T="int" @bind-Value="_splitCount"
+                             Label="Copies to split off"
+                             Min="1" Max="@(MaxCount - 1)"
+                             Variant="Variant.Outlined"
+                             Immediate="true"
+                             Error="@(!IsValid)"
+                             ErrorText="@ErrorText"/>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Result: <strong>@(MaxCount - _splitCount)</strong> will remain &nbsp;&bull;&nbsp; <strong>@_splitCount</strong> will become a new group.
+            </MudText>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton OnClick="Confirm" Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="@(!IsValid)" StartIcon="@Icons.Material.Filled.CallSplit">
+            Split
+        </MudButton>
+    </DialogActions>
+</MudDialog>
