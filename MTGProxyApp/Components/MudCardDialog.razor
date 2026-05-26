@@ -6,7 +6,7 @@
         <MudText Class="mb-3">Select your chosen card art.</MudText>
 
         <MudPaper Class="pa-3 mb-3" Elevation="0" Outlined="true">
-            <MudGrid Spacing="2" AlignItems="AlignItems.End">
+            <MudGrid Spacing="2">
                 <MudItem xs="6" sm="3" md="2">
                     <FilterPicker Label="Set"
                                   Items="_availableSets"
@@ -65,7 +65,7 @@
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="ml-1" />
                 }
-                <MudTextField Value="_artTagInput" ValueChanged="OnTagValueChanged"
+                <MudTextField T="string" Value="_artTagInput" ValueChanged="OnTagValueChanged"
                               Placeholder="@(_artTags.Count == 0 ? "Type a Scryfall art tag and press Enter…" : "Add another tag…")"
                               Variant="Variant.Text" Dense="true" Immediate="true"
                               OnKeyDown="OnTagInputKeyDown"
