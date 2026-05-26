@@ -84,7 +84,7 @@
                 }
                 <MudTextField @bind-Value="_artTagInput"
                               Placeholder="@(_artTags.Count == 0 ? "Type a Scryfall art tag and press Enter…" : "Add another tag…")"
-                              Variant="Variant.Text" Dense="true"
+                              Variant="Variant.Text" Dense="true" Immediate="true"
                               OnKeyDown="OnTagInputKeyDown"
                               Adornment="Adornment.End"
                               AdornmentIcon="@Icons.Material.Filled.Add"
