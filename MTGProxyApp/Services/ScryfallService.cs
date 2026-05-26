@@ -40,14 +40,12 @@ public class ScryfallService(BulkDataService bulkDataService, HttpService httpSe
     public List<CardDto> GetPrintsByOracleId(string oracleId, string? lang = null, bool highresOnly = false) =>
         bulkDataService.GetByOracleId(oracleId, lang, highresOnly);
 
-    public async Task<HashSet<string>> GetIllustrationIdsByArtTagAsync(string artTag)
+    public async Task<HashSet<string>> GetIllustrationIdsByArtTagAsync(string oracleId, string artTag)
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        // unique=art returns one card per distinct illustration, giving us all illustration IDs
-        // that carry this tag without the oracle_id constraint (which caused Scryfall's default
-        // unique=cards deduplication to collapse all prints to a single result).
-        // Client-side filtering against _allCards already scopes results to the right card.
-        var query = Uri.EscapeDataString($"art:\"{artTag}\"");
+        // unique=art returns one result per distinct illustration, avoiding the unique=cards
+        // default that collapses all prints of a card to a single result.
+        var query = Uri.EscapeDataString($"oracle_id:{oracleId} art:\"{artTag}\"");
         Uri? uri = new($"{ScryfallSearchUrl}?q={query}&unique=art");
 
         while (uri != null)
