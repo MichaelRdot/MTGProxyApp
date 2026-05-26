@@ -22,6 +22,7 @@ public partial class MudCardDialog : ComponentBase
     private Dictionary<string, FilterMode> _finishFilter = new();
     private readonly List<string> _artTags = [];
     private string _artTagInput = string.Empty;
+    private bool _suppressTagValueChange;
     private readonly Dictionary<string, HashSet<string>> _artTagCache = new(StringComparer.OrdinalIgnoreCase);
     private bool _isLoadingTags;
 
@@ -231,10 +232,26 @@ public partial class MudCardDialog : ComponentBase
     private void OnFrameFilterChanged(Dictionary<string, FilterMode> state) { _frameFilter = state; ApplyFiltersAndSort(); }
     private void OnFinishFilterChanged(Dictionary<string, FilterMode> state) { _finishFilter = state; ApplyFiltersAndSort(); }
 
+    // ValueChanged is called on both oninput (Immediate=true) and onchange (browser fires it on
+    // Enter). When the user presses Enter we set _suppressTagValueChange so the stale onchange
+    // value that arrives right after the keydown doesn't overwrite the clear we already applied.
+    private void OnTagValueChanged(string value)
+    {
+        if (_suppressTagValueChange)
+        {
+            _suppressTagValueChange = false;
+            return;
+        }
+        _artTagInput = value;
+    }
+
     private async Task OnTagInputKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
+        {
+            _suppressTagValueChange = true;
             await AddArtTagAsync();
+        }
     }
 
     private string GetSetDisplay(string setCode)
