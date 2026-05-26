@@ -15,11 +15,11 @@ public partial class MudCardDialog : ComponentBase
     private List<CardDto> _allCards = [];
     private List<CardDto> _cardList = [];
 
-    // Filter state
-    private IEnumerable<string> _selectedSets = [];
-    private IEnumerable<string> _selectedArtists = [];
-    private IEnumerable<string> _selectedFrames = [];
-    private IEnumerable<string> _selectedFinishes = [];
+    // Filter state – each dimension tracks include/exclude per value
+    private Dictionary<string, FilterMode> _setFilter = new();
+    private Dictionary<string, FilterMode> _artistFilter = new();
+    private Dictionary<string, FilterMode> _frameFilter = new();
+    private Dictionary<string, FilterMode> _finishFilter = new();
     private readonly List<string> _artTags = [];
     private string _artTagInput = string.Empty;
     private readonly Dictionary<string, HashSet<string>> _artTagCache = new(StringComparer.OrdinalIgnoreCase);
@@ -36,8 +36,8 @@ public partial class MudCardDialog : ComponentBase
     private List<string> _availableFinishes = [];
 
     private bool HasActiveFilters =>
-        _selectedSets.Any() || _selectedArtists.Any() || _selectedFrames.Any() ||
-        _selectedFinishes.Any() || _artTags.Count > 0;
+        _setFilter.Count > 0 || _artistFilter.Count > 0 || _frameFilter.Count > 0 ||
+        _finishFilter.Count > 0 || _artTags.Count > 0;
 
     private void Close() => MudDialog?.Cancel();
     private void SelectArt(CardDto card) => MudDialog?.Close(DialogResult.Ok(card));
@@ -93,21 +93,10 @@ public partial class MudCardDialog : ComponentBase
     {
         var filtered = _allCards.AsEnumerable();
 
-        var sets = _selectedSets.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (sets.Count > 0)
-            filtered = filtered.Where(c => c.Set != null && sets.Contains(c.Set));
-
-        var artists = _selectedArtists.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (artists.Count > 0)
-            filtered = filtered.Where(c => c.Artist != null && artists.Contains(c.Artist));
-
-        var frames = _selectedFrames.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (frames.Count > 0)
-            filtered = filtered.Where(c => c.Frame != null && frames.Contains(c.Frame));
-
-        var finishes = _selectedFinishes.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (finishes.Count > 0)
-            filtered = filtered.Where(c => c.Finishes != null && c.Finishes.Any(f => finishes.Contains(f)));
+        filtered = ApplyDimensionFilter(filtered, _setFilter, c => c.Set);
+        filtered = ApplyDimensionFilter(filtered, _artistFilter, c => c.Artist);
+        filtered = ApplyDimensionFilter(filtered, _frameFilter, c => c.Frame);
+        filtered = ApplyFinishFilter(filtered, _finishFilter);
 
         if (_artTags.Count > 0)
         {
@@ -130,6 +119,51 @@ public partial class MudCardDialog : ComponentBase
                 : filtered.OrderByDescending(c => c.ReleasedAt ?? string.Empty));
 
         _cardList = [.. filtered];
+    }
+
+    // Applies include/exclude filter for a single-valued string field (Set, Artist, Frame).
+    private static IEnumerable<CardDto> ApplyDimensionFilter(
+        IEnumerable<CardDto> source,
+        Dictionary<string, FilterMode> filter,
+        Func<CardDto, string?> selector)
+    {
+        var included = filter
+            .Where(kv => kv.Value == FilterMode.Include)
+            .Select(kv => kv.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var excluded = filter
+            .Where(kv => kv.Value == FilterMode.Exclude)
+            .Select(kv => kv.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (included.Count > 0)
+            source = source.Where(c => { var v = selector(c); return v != null && included.Contains(v); });
+        if (excluded.Count > 0)
+            source = source.Where(c => { var v = selector(c); return v == null || !excluded.Contains(v); });
+
+        return source;
+    }
+
+    // Finish is an array field, so include/exclude logic differs slightly.
+    private static IEnumerable<CardDto> ApplyFinishFilter(
+        IEnumerable<CardDto> source,
+        Dictionary<string, FilterMode> filter)
+    {
+        var included = filter
+            .Where(kv => kv.Value == FilterMode.Include)
+            .Select(kv => kv.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var excluded = filter
+            .Where(kv => kv.Value == FilterMode.Exclude)
+            .Select(kv => kv.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (included.Count > 0)
+            source = source.Where(c => c.Finishes != null && c.Finishes.Any(f => included.Contains(f)));
+        if (excluded.Count > 0)
+            source = source.Where(c => c.Finishes == null || !c.Finishes.Any(f => excluded.Contains(f)));
+
+        return source;
     }
 
     private async Task AddArtTagAsync()
@@ -172,10 +206,10 @@ public partial class MudCardDialog : ComponentBase
 
     private void ClearAllFilters()
     {
-        _selectedSets = [];
-        _selectedArtists = [];
-        _selectedFrames = [];
-        _selectedFinishes = [];
+        _setFilter = new();
+        _artistFilter = new();
+        _frameFilter = new();
+        _finishFilter = new();
         _artTags.Clear();
         _artTagInput = string.Empty;
         _sortBy = "released_at";
@@ -195,29 +229,10 @@ public partial class MudCardDialog : ComponentBase
         ApplyFiltersAndSort();
     }
 
-    private void OnSelectedSetsChanged(IEnumerable<string> values)
-    {
-        _selectedSets = values.ToList();
-        ApplyFiltersAndSort();
-    }
-
-    private void OnSelectedArtistsChanged(IEnumerable<string> values)
-    {
-        _selectedArtists = values.ToList();
-        ApplyFiltersAndSort();
-    }
-
-    private void OnSelectedFramesChanged(IEnumerable<string> values)
-    {
-        _selectedFrames = values.ToList();
-        ApplyFiltersAndSort();
-    }
-
-    private void OnSelectedFinishesChanged(IEnumerable<string> values)
-    {
-        _selectedFinishes = values.ToList();
-        ApplyFiltersAndSort();
-    }
+    private void OnSetFilterChanged(Dictionary<string, FilterMode> state) { _setFilter = state; ApplyFiltersAndSort(); }
+    private void OnArtistFilterChanged(Dictionary<string, FilterMode> state) { _artistFilter = state; ApplyFiltersAndSort(); }
+    private void OnFrameFilterChanged(Dictionary<string, FilterMode> state) { _frameFilter = state; ApplyFiltersAndSort(); }
+    private void OnFinishFilterChanged(Dictionary<string, FilterMode> state) { _finishFilter = state; ApplyFiltersAndSort(); }
 
     private async Task OnTagInputKeyDown(KeyboardEventArgs e)
     {
