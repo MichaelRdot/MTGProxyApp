@@ -47,7 +47,7 @@ public class ScryfallService(BulkDataService bulkDataService, HttpService httpSe
         // that carry this tag without the oracle_id constraint (which caused Scryfall's default
         // unique=cards deduplication to collapse all prints to a single result).
         // Client-side filtering against _allCards already scopes results to the right card.
-        var query = Uri.EscapeDataString($"art:{artTag}");
+        var query = Uri.EscapeDataString($"art:\"{artTag}\"");
         Uri? uri = new($"{ScryfallSearchUrl}?q={query}&unique=art");
 
         while (uri != null)
