@@ -1,5 +1,4 @@
-﻿using System.Security.Cryptography;
-using System.Text;
+﻿using System.Text;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MTGProxyApp.Components;
@@ -51,6 +50,13 @@ public partial class Home : ComponentBase
     private bool _creatingDocument;
     private CardFilterOptions _filterOptions = new();
     private bool FiltersActive => _filterOptions.Language != null || _filterOptions.HighresOnly;
+    private void OnCardSplit(CardSplitResult result)
+    {
+        var idx = _cards.FindIndex(c => c?.Id == result.OriginalCardId);
+        if (idx >= 0) _cards.Insert(idx + 1, result.SplitCard);
+        UpdatePrintList();
+    }
+
     private void OnCardUpdated(CardDto newCard)
     {
         if (newCard.LineIndex == -1)
