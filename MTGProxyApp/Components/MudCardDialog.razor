@@ -40,22 +40,26 @@
                                       FilterState="_yearFilter"
                                       FilterStateChanged="OnYearFilterChanged" />
                 </MudItem>
-                <MudItem xs="12" sm="12" md="4">
+                <MudItem xs="12" sm="12" md="2">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                        <MudSelect T="string" Label="Sort By"
+                        <MudSelect T="string"
                                    Value="_sortBy" ValueChanged="OnSortByChanged"
-                                   Dense="true" Class="flex-grow-1">
-                            <MudSelectItem T="string" Value="@("released_at")">Release Date</MudSelectItem>
-                            <MudSelectItem T="string" Value="@("artist")">Artist Name</MudSelectItem>
+                                   Dense="true" Margin="Margin.Dense" Class="flex-grow-1"
+                                   Style="font-size:0.75rem">
+                            <MudSelectItem T="string" Value="@("released_at")">Date</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("artist")">Artist</MudSelectItem>
                         </MudSelect>
                         <MudTooltip Text="@(_sortAscending ? "Ascending" : "Descending")">
                             <MudIconButton Icon="@(_sortAscending ? Icons.Material.Filled.ArrowUpward : Icons.Material.Filled.ArrowDownward)"
                                            OnClick="ToggleSortDirection"
                                            Size="Size.Small" />
                         </MudTooltip>
-                        <MudButton Variant="Variant.Text"
-                                   OnClick="ClearAllFilters"
-                                   Disabled="!HasActiveFilters">Clear All</MudButton>
+                        <MudTooltip Text="Clear all filters">
+                            <MudIconButton Icon="@Icons.Material.Filled.FilterAltOff"
+                                           OnClick="ClearAllFilters"
+                                           Disabled="!HasActiveFilters"
+                                           Size="Size.Small" />
+                        </MudTooltip>
                     </MudStack>
                 </MudItem>
             </MudGrid>
