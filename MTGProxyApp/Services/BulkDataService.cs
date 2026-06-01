@@ -126,10 +126,7 @@ public class BulkDataService : BackgroundService
             {
                 var oldPath = Path.Combine(_dataDirectory, oldMetadata.FileName);
                 if (oldPath != newFilePath)
-                {
-                    File.Delete(oldPath);
-                    _logger.LogInformation("Deleted old bulk data file: {Path}", oldPath);
-                }
+                    await TryDeleteFileAsync(oldPath, ct);
             }
 
             SaveMetadata(new BulkDataMetadata { FileName = newFileName, UpdatedAt = item.UpdatedAt });
@@ -151,7 +148,9 @@ public class BulkDataService : BackgroundService
         var newPrintedNameIndex = new Dictionary<string, List<CardDto>>(StringComparer.OrdinalIgnoreCase);
         var newFlavorNameIndex = new Dictionary<string, List<CardDto>>(StringComparer.OrdinalIgnoreCase);
 
-        await using var stream = File.OpenRead(filePath);
+        // FileShare.Delete lets Windows mark the file for deletion while we still hold the stream,
+        // which prevents the IOException when cleanup races with indexing.
+        await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
         await foreach (var card in JsonSerializer.DeserializeAsyncEnumerable<CardDto>(stream, cancellationToken: ct))
         {
             if (card == null) continue;
@@ -191,6 +190,29 @@ public class BulkDataService : BackgroundService
         _flavorNameIndex = newFlavorNameIndex;
         _logger.LogInformation("Indexed {NameCount} card names, {OracleCount} oracle IDs, {PrintedNameCount} printed names, and {FlavorNameCount} flavor names",
             newNameIndex.Count, newOracleIndex.Count, newPrintedNameIndex.Count, newFlavorNameIndex.Count);
+    }
+
+    private async Task TryDeleteFileAsync(string path, CancellationToken ct)
+    {
+        var delays = new[] { 500, 1000, 2000, 4000 };
+        for (int i = 0; i <= delays.Length; i++)
+        {
+            try
+            {
+                File.Delete(path);
+                _logger.LogInformation("Deleted old bulk data file: {Path}", path);
+                return;
+            }
+            catch (IOException) when (i < delays.Length)
+            {
+                _logger.LogDebug("Old bulk data file still locked, retrying in {Ms}ms: {Path}", delays[i], path);
+                await Task.Delay(delays[i], ct);
+            }
+            catch (IOException ex)
+            {
+                _logger.LogWarning(ex, "Could not delete old bulk data file after retries: {Path}", path);
+            }
+        }
     }
 
     private async Task DownloadFileAsync(Uri uri, string destPath, CancellationToken ct)
