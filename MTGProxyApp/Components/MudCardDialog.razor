@@ -34,6 +34,12 @@
                                   FilterState="_finishFilter"
                                   FilterStateChanged="OnFinishFilterChanged" />
                 </MudItem>
+                <MudItem xs="6" sm="3" md="2">
+                    <YearFilterPicker Label="Year"
+                                      Items="_availableYears"
+                                      FilterState="_yearFilter"
+                                      FilterStateChanged="OnYearFilterChanged" />
+                </MudItem>
                 <MudItem xs="12" sm="12" md="4">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                         <MudSelect T="string" Label="Sort By"

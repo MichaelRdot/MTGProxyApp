@@ -20,6 +20,7 @@ public partial class MudCardDialog : ComponentBase
     private Dictionary<string, FilterMode> _artistFilter = new();
     private Dictionary<string, FilterMode> _frameFilter = new();
     private Dictionary<string, FilterMode> _finishFilter = new();
+    private YearFilterState _yearFilter = new();
     private readonly List<string> _artTags = [];
     private string _artTagInput = string.Empty;
     private bool _suppressTagValueChange;
@@ -35,10 +36,11 @@ public partial class MudCardDialog : ComponentBase
     private List<string> _availableArtists = [];
     private List<string> _availableFrames = [];
     private List<string> _availableFinishes = [];
+    private List<string> _availableYears = [];
 
     private bool HasActiveFilters =>
         _setFilter.Count > 0 || _artistFilter.Count > 0 || _frameFilter.Count > 0 ||
-        _finishFilter.Count > 0 || _artTags.Count > 0;
+        _finishFilter.Count > 0 || _artTags.Count > 0 || _yearFilter.IsActive;
 
     private void Close() => MudDialog?.Cancel();
     private void SelectArt(CardDto card) => MudDialog?.Close(DialogResult.Ok(card));
@@ -88,6 +90,13 @@ public partial class MudCardDialog : ComponentBase
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(f => f)
             .ToList();
+
+        _availableYears = _allCards
+            .Where(c => c.ReleasedAt != null && c.ReleasedAt.Length >= 4)
+            .Select(c => c.ReleasedAt![..4])
+            .Distinct()
+            .OrderByDescending(y => y)
+            .ToList();
     }
 
     private void ApplyFiltersAndSort()
@@ -98,6 +107,7 @@ public partial class MudCardDialog : ComponentBase
         filtered = ApplyDimensionFilter(filtered, _artistFilter, c => c.Artist);
         filtered = ApplyDimensionFilter(filtered, _frameFilter, c => c.Frame);
         filtered = ApplyFinishFilter(filtered, _finishFilter);
+        filtered = ApplyYearFilter(filtered, _yearFilter);
 
         if (_artTags.Count > 0)
         {
@@ -141,6 +151,50 @@ public partial class MudCardDialog : ComponentBase
             source = source.Where(c => { var v = selector(c); return v != null && included.Contains(v); });
         if (excluded.Count > 0)
             source = source.Where(c => { var v = selector(c); return v == null || !excluded.Contains(v); });
+
+        return source;
+    }
+
+    private static IEnumerable<CardDto> ApplyYearFilter(
+        IEnumerable<CardDto> source,
+        YearFilterState yearFilter)
+    {
+        if (!yearFilter.IsActive) return source;
+
+        var included = yearFilter.Years
+            .Where(kv => kv.Value == FilterMode.Include)
+            .Select(kv => kv.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var excluded = yearFilter.Years
+            .Where(kv => kv.Value == FilterMode.Exclude)
+            .Select(kv => kv.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        bool hasRange = yearFilter.RangeStart.HasValue || yearFilter.RangeEnd.HasValue;
+
+        if (hasRange || included.Count > 0)
+        {
+            source = source.Where(c =>
+            {
+                var yearStr = c.ReleasedAt?.Length >= 4 ? c.ReleasedAt[..4] : null;
+                if (yearStr == null) return false;
+                if (!int.TryParse(yearStr, out var year)) return false;
+
+                bool inRange = hasRange &&
+                    (!yearFilter.RangeStart.HasValue || year >= yearFilter.RangeStart) &&
+                    (!yearFilter.RangeEnd.HasValue || year <= yearFilter.RangeEnd);
+                bool inIncluded = included.Count > 0 && included.Contains(yearStr);
+
+                return inRange || inIncluded;
+            });
+        }
+
+        if (excluded.Count > 0)
+            source = source.Where(c =>
+            {
+                var yearStr = c.ReleasedAt?.Length >= 4 ? c.ReleasedAt[..4] : null;
+                return yearStr == null || !excluded.Contains(yearStr);
+            });
 
         return source;
     }
@@ -210,6 +264,7 @@ public partial class MudCardDialog : ComponentBase
         _artistFilter = new();
         _frameFilter = new();
         _finishFilter = new();
+        _yearFilter = new();
         _artTags.Clear();
         _artTagInput = string.Empty;
         _sortBy = "released_at";
@@ -233,6 +288,7 @@ public partial class MudCardDialog : ComponentBase
     private void OnArtistFilterChanged(Dictionary<string, FilterMode> state) { _artistFilter = state; ApplyFiltersAndSort(); }
     private void OnFrameFilterChanged(Dictionary<string, FilterMode> state) { _frameFilter = state; ApplyFiltersAndSort(); }
     private void OnFinishFilterChanged(Dictionary<string, FilterMode> state) { _finishFilter = state; ApplyFiltersAndSort(); }
+    private void OnYearFilterChanged(YearFilterState state) { _yearFilter = state; ApplyFiltersAndSort(); }
 
     // ValueChanged is called on both oninput (Immediate=true) and onchange (browser fires it on
     // Enter). When the user presses Enter we set _suppressTagValueChange so the stale onchange

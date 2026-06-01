@@ -1,0 +1,64 @@
+@using MTGProxyApp.Models
+
+<MudMenu Dense="true" AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
+    <ActivatorContent>
+        <MudButton Variant="Variant.Outlined" FullWidth="true"
+                   EndIcon="@Icons.Material.Filled.ArrowDropDown"
+                   Color="@(HasActive ? Color.Primary : Color.Default)"
+                   Size="Size.Small">
+            @ButtonLabel
+        </MudButton>
+    </ActivatorContent>
+    <ChildContent>
+        @if (HasActive)
+        {
+            <MudMenuItem AutoClose="false" OnClick="ClearFilter">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.FilterAltOff" Size="Size.Small" />
+                    <MudText>Clear filter</MudText>
+                </MudStack>
+            </MudMenuItem>
+            <MudDivider />
+        }
+        <MudMenuItem AutoClose="false">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudNumericField T="int?" Value="_rangeStart" ValueChanged="OnRangeStartChanged"
+                                 Placeholder="From" Min="1993" Max="2100"
+                                 HideSpinButtons="true" Dense="true" Margin="Margin.Dense"
+                                 Style="width:76px" />
+                <MudText>–</MudText>
+                <MudNumericField T="int?" Value="_rangeEnd" ValueChanged="OnRangeEndChanged"
+                                 Placeholder="To" Min="1993" Max="2100"
+                                 HideSpinButtons="true" Dense="true" Margin="Margin.Dense"
+                                 Style="width:76px" />
+            </MudStack>
+        </MudMenuItem>
+        @if (Items.Count > 0)
+        {
+            <MudDivider />
+            @foreach (var year in Items)
+            {
+                var mode = GetMode(year);
+                <MudMenuItem AutoClose="false" OnClick="@(() => ToggleYear(year))">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        @if (mode == FilterMode.Include)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                        }
+                        else if (mode == FilterMode.Exclude)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.RadioButtonUnchecked" Color="Color.Default" Size="Size.Small" />
+                        }
+                        <MudText Style="@(mode == FilterMode.Exclude ? "text-decoration: line-through; opacity: 0.6" : "")">
+                            @year
+                        </MudText>
+                    </MudStack>
+                </MudMenuItem>
+            }
+        }
+    </ChildContent>
+</MudMenu>
