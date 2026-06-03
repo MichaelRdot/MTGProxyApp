@@ -26,29 +26,31 @@
         }
         else
         {
-            @foreach (var item in Items)
-            {
-                var mode = GetMode(item);
-                <MudMenuItem AutoClose="false" OnClick="@(() => ToggleItem(item))">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                        @if (mode == FilterMode.Include)
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
-                        }
-                        else if (mode == FilterMode.Exclude)
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" />
-                        }
-                        else
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.RadioButtonUnchecked" Color="Color.Default" Size="Size.Small" />
-                        }
-                        <MudText Style="@(mode == FilterMode.Exclude ? "text-decoration: line-through; opacity: 0.6" : "")">
-                            @(FormatDisplay?.Invoke(item) ?? item)
-                        </MudText>
-                    </MudStack>
-                </MudMenuItem>
-            }
+            <div style="max-height:300px;overflow-y:auto;overflow-x:hidden">
+                @foreach (var item in Items)
+                {
+                    var mode = GetMode(item);
+                    <MudMenuItem AutoClose="false" OnClick="@(() => ToggleItem(item))">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            @if (mode == FilterMode.Include)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                            }
+                            else if (mode == FilterMode.Exclude)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" />
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.RadioButtonUnchecked" Color="Color.Default" Size="Size.Small" />
+                            }
+                            <MudText Style="@(mode == FilterMode.Exclude ? "text-decoration: line-through; opacity: 0.6" : "")">
+                                @(FormatDisplay?.Invoke(item) ?? item)
+                            </MudText>
+                        </MudStack>
+                    </MudMenuItem>
+                }
+            </div>
         }
     </ChildContent>
 </MudMenu>
