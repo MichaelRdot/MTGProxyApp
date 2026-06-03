@@ -10,6 +10,29 @@
                 }
             </MudSelect>
             <MudSwitch @bind-Value="_highresOnly" Label="High-res scans only" Color="Color.Primary"/>
+            <MudDivider />
+            <MudGrid Spacing="2">
+                <MudItem xs="6">
+                    <FilterPicker Label="Frame"
+                                  Items="Frames"
+                                  FormatDisplay="FormatFrameName"
+                                  FilterState="_frameFilter"
+                                  FilterStateChanged="OnFrameFilterChanged" />
+                </MudItem>
+                <MudItem xs="6">
+                    <FilterPicker Label="Finish"
+                                  Items="Finishes"
+                                  FormatDisplay="FormatFinishName"
+                                  FilterState="_finishFilter"
+                                  FilterStateChanged="OnFinishFilterChanged" />
+                </MudItem>
+                <MudItem xs="12">
+                    <YearFilterPicker Label="Year"
+                                      Items="_emptyList"
+                                      FilterState="_yearFilter"
+                                      FilterStateChanged="OnYearFilterChanged" />
+                </MudItem>
+            </MudGrid>
         </MudStack>
     </DialogContent>
     <DialogActions>

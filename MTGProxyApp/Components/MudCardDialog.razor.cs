@@ -56,6 +56,15 @@ public partial class MudCardDialog : ComponentBase
         if (oracleId != null)
             _allCards = ScryfallService.GetPrintsByOracleId(oracleId, FilterOptions.Language, FilterOptions.HighresOnly);
 
+        _frameFilter = new Dictionary<string, FilterMode>(FilterOptions.FrameFilter);
+        _finishFilter = new Dictionary<string, FilterMode>(FilterOptions.FinishFilter);
+        _yearFilter = new YearFilterState
+        {
+            Years = new Dictionary<string, FilterMode>(FilterOptions.YearFilter.Years),
+            RangeStart = FilterOptions.YearFilter.RangeStart,
+            RangeEnd = FilterOptions.YearFilter.RangeEnd
+        };
+
         ComputeAvailableOptions();
         ApplyFiltersAndSort();
         await base.OnInitializedAsync();

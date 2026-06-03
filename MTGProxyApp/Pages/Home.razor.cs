@@ -49,7 +49,9 @@ public partial class Home : ComponentBase
 
     private bool _creatingDocument;
     private CardFilterOptions _filterOptions = new();
-    private bool FiltersActive => _filterOptions.Language != null || _filterOptions.HighresOnly;
+    private bool FiltersActive => _filterOptions.Language != null || _filterOptions.HighresOnly
+        || _filterOptions.FrameFilter.Count > 0 || _filterOptions.FinishFilter.Count > 0
+        || _filterOptions.YearFilter.IsActive;
     private void OnCardSplit(CardSplitResult result)
     {
         var cardIdx = _cards.FindIndex(c => c?.Id == result.OriginalCardId);
@@ -217,7 +219,7 @@ public partial class Home : ComponentBase
     }
     private async Task OpenFilters()
     {
-        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
         var parameters = new DialogParameters<FilterDialog> { { d => d.Options, _filterOptions } };
         var dialog = await DialogService.ShowAsync<FilterDialog>("Card Filters", parameters, options);
         var result = await dialog.Result;
