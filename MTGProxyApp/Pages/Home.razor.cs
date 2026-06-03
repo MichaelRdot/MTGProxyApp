@@ -50,6 +50,7 @@ public partial class Home : ComponentBase
     private bool _creatingDocument;
     private CardFilterOptions _filterOptions = new();
     private bool FiltersActive => _filterOptions.Language != null || _filterOptions.HighresOnly
+        || _filterOptions.SetFilter.Count > 0 || _filterOptions.ArtistFilter.Count > 0
         || _filterOptions.FrameFilter.Count > 0 || _filterOptions.FinishFilter.Count > 0
         || _filterOptions.YearFilter.IsActive;
     private void OnCardSplit(CardSplitResult result)

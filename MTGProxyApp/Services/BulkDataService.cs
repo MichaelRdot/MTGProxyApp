@@ -18,12 +18,16 @@ public class BulkDataService : BackgroundService
     private Dictionary<string, List<CardDto>> _oracleIndex = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, List<CardDto>> _printedNameIndex = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, List<CardDto>> _flavorNameIndex = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, string> _setNameIndex = new(StringComparer.OrdinalIgnoreCase);
+    private List<string> _allArtists = [];
 
     private volatile bool _isReady;
     private volatile string _status = "Initializing…";
 
     public bool IsReady => _isReady;
     public string Status => _status;
+    public IReadOnlyDictionary<string, string> AllSets => _setNameIndex;
+    public IReadOnlyList<string> AllArtists => _allArtists;
 
     public BulkDataService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<BulkDataService> logger)
     {
@@ -147,6 +151,8 @@ public class BulkDataService : BackgroundService
         var newOracleIndex = new Dictionary<string, List<CardDto>>(StringComparer.OrdinalIgnoreCase);
         var newPrintedNameIndex = new Dictionary<string, List<CardDto>>(StringComparer.OrdinalIgnoreCase);
         var newFlavorNameIndex = new Dictionary<string, List<CardDto>>(StringComparer.OrdinalIgnoreCase);
+        var newSetNameIndex = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var newArtistsSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // FileShare.Delete lets Windows mark the file for deletion while we still hold the stream,
         // which prevents the IOException when cleanup races with indexing.
@@ -182,12 +188,19 @@ public class BulkDataService : BackgroundService
                     newFlavorNameIndex[flavorName] = fnList = [];
                 fnList.Add(card);
             }
+
+            if (card.Set != null && card.SetName != null)
+                newSetNameIndex.TryAdd(card.Set, card.SetName);
+            if (card.Artist != null)
+                newArtistsSet.Add(card.Artist);
         }
 
         _nameIndex = newNameIndex;
         _oracleIndex = newOracleIndex;
         _printedNameIndex = newPrintedNameIndex;
         _flavorNameIndex = newFlavorNameIndex;
+        _setNameIndex = newSetNameIndex;
+        _allArtists = [.. newArtistsSet.OrderBy(a => a, StringComparer.OrdinalIgnoreCase)];
         _logger.LogInformation("Indexed {NameCount} card names, {OracleCount} oracle IDs, {PrintedNameCount} printed names, and {FlavorNameCount} flavor names",
             newNameIndex.Count, newOracleIndex.Count, newPrintedNameIndex.Count, newFlavorNameIndex.Count);
     }

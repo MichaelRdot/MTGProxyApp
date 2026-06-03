@@ -40,6 +40,9 @@ public class ScryfallService(BulkDataService bulkDataService, HttpService httpSe
     public List<CardDto> GetPrintsByOracleId(string oracleId, string? lang = null, bool highresOnly = false) =>
         bulkDataService.GetByOracleId(oracleId, lang, highresOnly);
 
+    public IReadOnlyDictionary<string, string> AllSets => bulkDataService.AllSets;
+    public IReadOnlyList<string> AllArtists => bulkDataService.AllArtists;
+
     public async Task<HashSet<string>> GetIllustrationIdsByArtTagAsync(string oracleId, string artTag)
     {
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
