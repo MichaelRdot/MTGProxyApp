@@ -20,8 +20,22 @@
             </MudMenuItem>
             <MudDivider />
         }
+        <MudMenuItem AutoClose="false">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudNumericField T="int?" Value="_rangeStart" ValueChanged="OnRangeStartChanged"
+                                 Placeholder="From" Min="1993" Max="2100"
+                                 HideSpinButtons="true" Dense="true" Margin="Margin.Dense"
+                                 Style="width:76px" />
+                <MudText>–</MudText>
+                <MudNumericField T="int?" Value="_rangeEnd" ValueChanged="OnRangeEndChanged"
+                                 Placeholder="To" Min="1993" Max="2100"
+                                 HideSpinButtons="true" Dense="true" Margin="Margin.Dense"
+                                 Style="width:76px" />
+            </MudStack>
+        </MudMenuItem>
         @if (Items.Count > 0)
         {
+            <MudDivider />
             <MudMenuItem AutoClose="false">
                 <MudTextField T="string" Value="_searchText" ValueChanged="OnSearchChanged"
                               Placeholder="Search…" Immediate="true"
@@ -30,18 +44,11 @@
                               Clearable="true" />
             </MudMenuItem>
             <MudDivider />
-        }
-        @if (Items.Count == 0)
-        {
-            <MudMenuItem Disabled="true">No options available</MudMenuItem>
-        }
-        else
-        {
             <div style="max-height:300px;overflow-y:auto;overflow-x:hidden">
-                @foreach (var item in FilteredItems)
+                @foreach (var year in FilteredItems)
                 {
-                    var mode = GetMode(item);
-                    <MudMenuItem AutoClose="false" OnClick="@(() => ToggleItem(item))">
+                    var mode = GetMode(year);
+                    <MudMenuItem AutoClose="false" OnClick="@(() => ToggleYear(year))">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                             @if (mode == FilterMode.Include)
                             {
@@ -56,7 +63,7 @@
                                 <MudIcon Icon="@Icons.Material.Filled.RadioButtonUnchecked" Color="Color.Default" Size="Size.Small" />
                             }
                             <MudText Style="@(mode == FilterMode.Exclude ? "text-decoration: line-through; opacity: 0.6" : "")">
-                                @(FormatDisplay?.Invoke(item) ?? item)
+                                @year
                             </MudText>
                         </MudStack>
                     </MudMenuItem>

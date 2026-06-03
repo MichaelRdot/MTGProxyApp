@@ -15,6 +15,12 @@ public partial class FilterPicker : ComponentBase
     private int ExcludeCount => FilterState.Count(kv => kv.Value == FilterMode.Exclude);
     private bool HasActive => FilterState.Count > 0;
 
+    private string _searchText = "";
+
+    private IEnumerable<string> FilteredItems => string.IsNullOrWhiteSpace(_searchText)
+        ? Items
+        : Items.Where(i => (FormatDisplay?.Invoke(i) ?? i).Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+
     private string ButtonLabel
     {
         get
@@ -48,6 +54,11 @@ public partial class FilterPicker : ComponentBase
         await FilterStateChanged.InvokeAsync(updated);
     }
 
-    private async Task ClearFilter() =>
+    private void OnSearchChanged(string value) => _searchText = value;
+
+    private async Task ClearFilter()
+    {
+        _searchText = "";
         await FilterStateChanged.InvokeAsync(new Dictionary<string, FilterMode>());
+    }
 }
