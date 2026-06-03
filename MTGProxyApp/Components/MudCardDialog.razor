@@ -6,63 +6,61 @@
         <MudText Class="mb-3">Select your chosen card art.</MudText>
 
         <MudPaper Class="pa-3 mb-3" Elevation="0" Outlined="true">
-            <MudGrid Spacing="3">
-                <MudItem xs="6" sm="3" md="2">
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+                <div style="flex:1 1 0;min-width:80px">
                     <FilterPicker Label="Set"
                                   Items="_availableSets"
                                   FormatDisplay="GetSetDisplay"
                                   FilterState="_setFilter"
                                   FilterStateChanged="OnSetFilterChanged" />
-                </MudItem>
-                <MudItem xs="6" sm="3" md="2">
+                </div>
+                <div style="flex:1 1 0;min-width:80px">
                     <FilterPicker Label="Artist"
                                   Items="_availableArtists"
                                   FilterState="_artistFilter"
                                   FilterStateChanged="OnArtistFilterChanged" />
-                </MudItem>
-                <MudItem xs="6" sm="3" md="2">
+                </div>
+                <div style="flex:1 1 0;min-width:80px">
                     <FilterPicker Label="Frame"
                                   Items="_availableFrames"
                                   FormatDisplay="FormatFrameName"
                                   FilterState="_frameFilter"
                                   FilterStateChanged="OnFrameFilterChanged" />
-                </MudItem>
-                <MudItem xs="6" sm="3" md="2">
+                </div>
+                <div style="flex:1 1 0;min-width:80px">
                     <FilterPicker Label="Finish"
                                   Items="_availableFinishes"
                                   FormatDisplay="FormatFinishName"
                                   FilterState="_finishFilter"
                                   FilterStateChanged="OnFinishFilterChanged" />
-                </MudItem>
-                <MudItem xs="6" sm="3" md="2">
+                </div>
+                <div style="flex:1 1 0;min-width:80px">
                     <YearFilterPicker Label="Year"
                                       Items="_availableYears"
                                       FilterState="_yearFilter"
                                       FilterStateChanged="OnYearFilterChanged" />
-                </MudItem>
-                <MudItem xs="12" sm="12" md="2">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                        <MudSelect T="string"
-                                   Value="_sortBy" ValueChanged="OnSortByChanged"
-                                   Dense="true" Margin="Margin.Dense" Class="flex-grow-1"
-                                   Style="font-size:0.75rem">
-                            <MudSelectItem T="string" Value="@("released_at")">Date</MudSelectItem>
-                            <MudSelectItem T="string" Value="@("artist")">Artist</MudSelectItem>
-                        </MudSelect>
-                        <MudTooltip Text="@(_sortAscending ? "Ascending" : "Descending")">
-                            <MudIconButton Icon="@(_sortAscending ? Icons.Material.Filled.ArrowUpward : Icons.Material.Filled.ArrowDownward)"
-                                           OnClick="ToggleSortDirection"
-                                           Size="Size.Small" />
-                        </MudTooltip>
-                        <MudTooltip Text="Clear all filters">
-                            <MudIconButton Icon="@Icons.Material.Filled.FilterAltOff"
-                                           OnClick="ClearAllFilters"
-                                           Disabled="!HasActiveFilters"
-                                           Size="Size.Small" />
-                        </MudTooltip>
-                    </MudStack>
-                </MudItem>
-            </MudGrid>
+                </div>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Style="flex:0 0 auto">
+                    <MudSelect T="string"
+                               Value="_sortBy" ValueChanged="OnSortByChanged"
+                               Dense="true" Margin="Margin.Dense"
+                               Style="font-size:0.75rem;min-width:72px">
+                        <MudSelectItem T="string" Value="@("released_at")">Date</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("artist")">Artist</MudSelectItem>
+                    </MudSelect>
+                    <MudTooltip Text="@(_sortAscending ? "Ascending" : "Descending")">
+                        <MudIconButton Icon="@(_sortAscending ? Icons.Material.Filled.ArrowUpward : Icons.Material.Filled.ArrowDownward)"
+                                       OnClick="ToggleSortDirection"
+                                       Size="Size.Small" />
+                    </MudTooltip>
+                    <MudTooltip Text="Clear all filters">
+                        <MudIconButton Icon="@Icons.Material.Filled.FilterAltOff"
+                                       OnClick="ClearAllFilters"
+                                       Disabled="!HasActiveFilters"
+                                       Size="Size.Small" />
+                    </MudTooltip>
+                </MudStack>
+            </div>
 
             <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center" Class="mt-2">
                 <MudText Typo="Typo.body2" Class="mr-1">Art Tags:</MudText>
