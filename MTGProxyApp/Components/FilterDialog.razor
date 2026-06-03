@@ -11,35 +11,35 @@
             </MudSelect>
             <MudSwitch @bind-Value="_highresOnly" Label="High-res scans only" Color="Color.Primary"/>
             <MudDivider />
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <div style="flex:1;min-width:80px">
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <div style="flex:1 1 0;min-width:80px">
                     <FilterPicker Label="Set"
                                   Items="_availableSets"
                                   FormatDisplay="FormatSetName"
                                   FilterState="_setFilter"
                                   FilterStateChanged="OnSetFilterChanged" />
                 </div>
-                <div style="flex:1;min-width:80px">
+                <div style="flex:1 1 0;min-width:80px">
                     <FilterPicker Label="Artist"
                                   Items="_availableArtists"
                                   FilterState="_artistFilter"
                                   FilterStateChanged="OnArtistFilterChanged" />
                 </div>
-                <div style="flex:1;min-width:80px">
+                <div style="flex:1 1 0;min-width:80px">
                     <FilterPicker Label="Frame"
                                   Items="Frames"
                                   FormatDisplay="FormatFrameName"
                                   FilterState="_frameFilter"
                                   FilterStateChanged="OnFrameFilterChanged" />
                 </div>
-                <div style="flex:1;min-width:80px">
+                <div style="flex:1 1 0;min-width:80px">
                     <FilterPicker Label="Finish"
                                   Items="Finishes"
                                   FormatDisplay="FormatFinishName"
                                   FilterState="_finishFilter"
                                   FilterStateChanged="OnFinishFilterChanged" />
                 </div>
-                <div style="flex:1;min-width:80px">
+                <div style="flex:1 1 0;min-width:80px">
                     <YearFilterPicker Label="Year"
                                       Items="_emptyList"
                                       FilterState="_yearFilter"
