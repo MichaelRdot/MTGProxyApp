@@ -220,7 +220,7 @@ public partial class Home : ComponentBase
     }
     private async Task OpenFilters()
     {
-        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var parameters = new DialogParameters<FilterDialog> { { d => d.Options, _filterOptions } };
         var dialog = await DialogService.ShowAsync<FilterDialog>("Card Filters", parameters, options);
         var result = await dialog.Result;
