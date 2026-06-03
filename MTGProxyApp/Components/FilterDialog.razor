@@ -11,41 +11,41 @@
             </MudSelect>
             <MudSwitch @bind-Value="_highresOnly" Label="High-res scans only" Color="Color.Primary"/>
             <MudDivider />
-            <div style="display:flex;gap:12px;flex-wrap:wrap">
-                <div style="flex:1 1 0;min-width:80px">
+            <MudPaper Class="d-flex justify-space-evenly flex-wrap gap-3" Elevation="0">
+                <MudPaper Elevation="0" Class="flex-grow-1">
                     <FilterPicker Label="Set"
                                   Items="_availableSets"
                                   FormatDisplay="FormatSetName"
                                   FilterState="_setFilter"
                                   FilterStateChanged="OnSetFilterChanged" />
-                </div>
-                <div style="flex:1 1 0;min-width:80px">
+                </MudPaper>
+                <MudPaper Elevation="0" Class="flex-grow-1">
                     <FilterPicker Label="Artist"
                                   Items="_availableArtists"
                                   FilterState="_artistFilter"
                                   FilterStateChanged="OnArtistFilterChanged" />
-                </div>
-                <div style="flex:1 1 0;min-width:80px">
+                </MudPaper>
+                <MudPaper Elevation="0" Class="flex-grow-1">
                     <FilterPicker Label="Frame"
                                   Items="Frames"
                                   FormatDisplay="FormatFrameName"
                                   FilterState="_frameFilter"
                                   FilterStateChanged="OnFrameFilterChanged" />
-                </div>
-                <div style="flex:1 1 0;min-width:80px">
+                </MudPaper>
+                <MudPaper Elevation="0" Class="flex-grow-1">
                     <FilterPicker Label="Finish"
                                   Items="Finishes"
                                   FormatDisplay="FormatFinishName"
                                   FilterState="_finishFilter"
                                   FilterStateChanged="OnFinishFilterChanged" />
-                </div>
-                <div style="flex:1 1 0;min-width:80px">
+                </MudPaper>
+                <MudPaper Elevation="0" Class="flex-grow-1">
                     <YearFilterPicker Label="Year"
                                       Items="_emptyList"
                                       FilterState="_yearFilter"
                                       FilterStateChanged="OnYearFilterChanged" />
-                </div>
-            </div>
+                </MudPaper>
+            </MudPaper>
         </MudStack>
     </DialogContent>
     <DialogActions>
