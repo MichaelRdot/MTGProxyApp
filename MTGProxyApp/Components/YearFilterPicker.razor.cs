@@ -12,6 +12,13 @@ public partial class YearFilterPicker : ComponentBase
 
     private int? _rangeStart;
     private int? _rangeEnd;
+    private string _searchText = "";
+
+    private IEnumerable<string> FilteredItems => string.IsNullOrWhiteSpace(_searchText)
+        ? Items
+        : Items.Where(y => y.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+
+    private void OnSearchChanged(string value) => _searchText = value;
 
     protected override void OnParametersSet()
     {
@@ -93,6 +100,7 @@ public partial class YearFilterPicker : ComponentBase
     {
         _rangeStart = null;
         _rangeEnd = null;
+        _searchText = "";
         await FilterStateChanged.InvokeAsync(new YearFilterState());
     }
 }

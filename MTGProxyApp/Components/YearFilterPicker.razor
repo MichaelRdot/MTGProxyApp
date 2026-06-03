@@ -36,8 +36,16 @@
         @if (Items.Count > 0)
         {
             <MudDivider />
+            <MudMenuItem AutoClose="false">
+                <MudTextField T="string" Value="_searchText" ValueChanged="OnSearchChanged"
+                              Placeholder="Search…" Immediate="true"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Dense="true" Margin="Margin.Dense" Variant="Variant.Text"
+                              Clearable="true" />
+            </MudMenuItem>
+            <MudDivider />
             <div style="max-height:300px;overflow-y:auto;overflow-x:hidden">
-                @foreach (var year in Items)
+                @foreach (var year in FilteredItems)
                 {
                     var mode = GetMode(year);
                     <MudMenuItem AutoClose="false" OnClick="@(() => ToggleYear(year))">
