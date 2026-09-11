@@ -44,8 +44,8 @@ public partial class MudCardDialog : ComponentBase
     private void SelectArt(CardDto card) => MudDialog?.Close(DialogResult.Ok(card));
 
     private static string GetImageUrl(CardDto card) =>
-        card.ImageUris?.Png?.ToString() ??
-        card.CardFaces?.FirstOrDefault()?.ImageUris?.Png?.ToString() ??
+        card.ImageUris?.Preview?.ToString() ??
+        card.CardFaces?.FirstOrDefault()?.ImageUris?.Preview?.ToString() ??
         "images/card-placeholder.png";
 
     protected override async Task OnInitializedAsync()

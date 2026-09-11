@@ -87,8 +87,10 @@
                 <MudItem xs="12" sm="6" md="4" lg="3" xl="2" xxl="1">
                     <MudCard Outlined="true">
                         <MudCardContent>
-                            <MudButton @onclick="@(() => SelectArt(card))">
-                                <MudImage Src="@GetImageUrl(card)" Fluid />
+                            <MudButton @onclick="@(() => SelectArt(card))" FullWidth>
+                                @* Reserve the card's shape before it loads; a 0-height image counts as on-screen, which would defeat lazy loading *@
+                                <MudImage Src="@GetImageUrl(card)" Fluid loading="lazy"
+                                          Style="width: 100%; aspect-ratio: auto 488 / 680;" />
                             </MudButton>
                         </MudCardContent>
                     </MudCard>

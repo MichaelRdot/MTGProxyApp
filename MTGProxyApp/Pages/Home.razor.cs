@@ -117,7 +117,7 @@ public partial class Home : ComponentBase
         _deckTextField = tempDeckText.ToString();
         UpdatePrintList();
     }
-    private async Task Load()
+    private void Load()
     {
         if (!BulkDataService.IsReady)
         {
@@ -147,12 +147,6 @@ public partial class Home : ComponentBase
                     card.Count = cardModel.Count;
                     card.LineIndex = lineIdx;
                     card.Flip = card.CardFaces?[0].ImageUris != null;
-                    if (card.Flip)
-                    {
-                        card.PreLoadedCardImageBack = await HttpService.LoadCardImage(card.CardFaces[1].ImageUris.Png.ToString());
-                        card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.CardFaces[0].ImageUris.Png.ToString());
-                    }
-                    else card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
                     if(card.TypeLine != null && (card.TypeLine.Contains("Token") || card.TypeLine.Contains("Card"))) card.IsToken = true;
                     _cards.Add(card);
                     tempDeckText.Append($"{UpdateDeckList(card)}\n");
