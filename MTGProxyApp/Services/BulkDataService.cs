@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text.Json;
 using MTGProxyApp.Dtos;
 using MTGProxyApp.Models;
@@ -151,8 +152,11 @@ public class BulkDataService : BackgroundService
         var newPrintedNameIndex = new Dictionary<string, List<CardDto>>(StringComparer.OrdinalIgnoreCase);
         var newFlavorNameIndex = new Dictionary<string, List<CardDto>>(StringComparer.OrdinalIgnoreCase);
 
-        await using var stream = File.OpenRead(filePath);
-        await foreach (var card in JsonSerializer.DeserializeAsyncEnumerable<CardDto>(stream, cancellationToken: ct))
+        // Scryfall serves gzipped JSON Lines; files downloaded before that change are a plain JSON array.
+        var isJsonLines = filePath.EndsWith(".jsonl.gz", StringComparison.OrdinalIgnoreCase);
+        await using var fileStream = File.OpenRead(filePath);
+        await using Stream stream = isJsonLines ? new GZipStream(fileStream, CompressionMode.Decompress) : fileStream;
+        await foreach (var card in JsonSerializer.DeserializeAsyncEnumerable<CardDto>(stream, topLevelValues: isJsonLines, cancellationToken: ct))
         {
             if (card == null) continue;
 
@@ -196,7 +200,7 @@ public class BulkDataService : BackgroundService
     private async Task DownloadFileAsync(Uri uri, string destPath, CancellationToken ct)
     {
         using var client = _httpClientFactory.CreateClient();
-        client.Timeout = Timeout.InfiniteTimeSpan; // file is ~2 GB; cancellation is handled via ct
+        client.Timeout = Timeout.InfiniteTimeSpan; // file is ~400 MB compressed; cancellation is handled via ct
         client.DefaultRequestHeaders.UserAgent.ParseAdd("MTGProxyApp/1.0");
         using var response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
