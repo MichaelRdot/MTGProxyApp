@@ -42,9 +42,4 @@ public class HttpService
 
         return default;
     }
-
-    public async Task<byte[]> LoadCardImage(string cardImage)
-    {
-        return await _client.GetByteArrayAsync(cardImage);
-    }
 }

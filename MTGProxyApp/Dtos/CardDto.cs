@@ -8,7 +8,6 @@ public class CardDto
     public int LineIndex { get; set; }
     public bool IsToken { get; set; }
     public byte[]? PreLoadedCardImageFront { get; set; }
-    public byte[]? PreLoadedCardImageBack { get; set; }
     public bool Flip { get; set; }
     [JsonPropertyName("set")] public string? Set { get; set; }
     [JsonPropertyName("set_name")] public string? SetName { get; set; }
@@ -28,7 +27,15 @@ public class CardDto
     [JsonPropertyName("printed_name")] public string? PrintedName { get; set; }
     [JsonPropertyName("flavor_name")] public string? FlavorName { get; set; }
     [JsonPropertyName("card_faces")] public CardFaceDto[]? CardFaces { get; set; }
-    public class CardPngDto { [JsonPropertyName("png")] public Uri? Png { get; set; } }
+    public class CardPngDto
+    {
+        [JsonPropertyName("png")] public Uri? Png { get; set; }
+        [JsonPropertyName("normal")] public Uri? Normal { get; set; }
+
+        // ~100 KB JPG for on-screen grids; the ~1 MB PNG is only needed for printing.
+        // Uploaded images only set Png, so fall back to it.
+        [JsonIgnore] public Uri? Preview => Normal ?? Png;
+    }
 
     public class CardFaceDto
     {

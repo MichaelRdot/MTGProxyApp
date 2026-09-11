@@ -24,7 +24,7 @@ public partial class MudCardCard : ComponentBase
     protected override async Task OnInitializedAsync()
     {
         if (Card.CardFaces?[0].ImageUris != null) _mdfc = true;
-        _cardImage = _mdfc ? Card.CardFaces?[0].ImageUris?.Png?.ToString() : Card.ImageUris?.Png?.ToString();
+        _cardImage = _mdfc ? Card.CardFaces?[0].ImageUris?.Preview?.ToString() : Card.ImageUris?.Preview?.ToString();
         await base.OnInitializedAsync();
     }
 
@@ -81,14 +81,7 @@ public partial class MudCardCard : ComponentBase
             Card = newCard;
 
             Card.Flip = Card.CardFaces?[0].ImageUris != null;
-            if (Card.Flip)
-            {
-                Card.PreLoadedCardImageBack = await HttpService.LoadCardImage(card.CardFaces[1].ImageUris.Png.ToString());
-                Card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.CardFaces[0].ImageUris.Png.ToString());
-            }
-            else Card.PreLoadedCardImageFront = await HttpService.LoadCardImage(card.ImageUris.Png.ToString());
-
-            _cardImage = Card.Flip ? Card.CardFaces?[0].ImageUris?.Png?.ToString() : Card.ImageUris?.Png?.ToString();
+            _cardImage = Card.Flip ? Card.CardFaces?[0].ImageUris?.Preview?.ToString() : Card.ImageUris?.Preview?.ToString();
             if (UpdatedCard.HasDelegate) await UpdatedCard.InvokeAsync(Card);
         }
     }

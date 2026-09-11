@@ -1,14 +1,12 @@
-@using MTGProxyApp.Services
 @using MTGProxyApp.Dtos
 @inject IDialogService DialogService
-@inject HttpService HttpService
 
 <MudItem xs="12" sm="6" md="4" lg="3" xl="2" xxl="1">
     <MudCard Outlined="true">
         <MudCardContent Class="pa-1 pb-0">
             <MudButton OnClick="@OpenArtPickerAsync" FullWidth Variant="Variant.Text"
                        Style="padding: 0; min-height: unset; display: block; text-transform: none;">
-                <MudImage Src="@_cardImage" Fluid Class="d-block" Style="border-radius: 4px;"/>
+                <MudImage Src="@_cardImage" Fluid Class="d-block" Style="border-radius: 4px; width: 100%;"/>
             </MudButton>
         </MudCardContent>
         <MudCardActions Class="pa-2 pt-1">
